@@ -1,0 +1,482 @@
+/* styles.css - General Styles */
+:root {
+    --primary-color: #2196F3;
+    --primary-dark: #1976D2;
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --danger-color: #f44336;
+    --info-color: #17a2b8;
+    --purple-color: #9C27B0;
+    --dark-color: #333;
+    --gray-color: #666;
+    --light-gray: #f5f5f5;
+    --border-color: #e0e0e0;
+    --shadow: 0 2px 5px rgba(0,0,0,0.1);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    line-height: 1.6;
+    color: var(--dark-color);
+    background-color: #f8f9fa;
+}
+
+/* #app {
+    max-width: 1300px;
+    margin: 0 auto;  
+    padding: 0 5px; 
+} */
+
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 1rem;
+    color: var(--dark-color);
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.5rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    margin-top: 1.25rem;
+}
+
+p {
+    margin-bottom: 1rem;
+}
+
+/* Layout */
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--dark-color);
+}
+
+.btn-outline:hover {
+    background-color: var(--light-gray);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: var(--light-gray);
+    cursor: not-allowed;
+}
+
+textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+/* Alerts */
+.alert {
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background-color: #e8f5e9;
+    border-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.alert-danger {
+    background-color: #ffebee;
+    border-color: #ffcdd2;
+    color: #c62828;
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #bbdefb;
+    color: #1565c0;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-selesai {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.status-proses {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
+.status-dilaporkan {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #e1bee7;
+}
+
+.status-pending {
+    background-color: #fff3e0;
+    color: #ef6c00;
+    border: 1px solid #ffcc80;
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-muted { color: var(--gray-color); }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.p-1 { padding: 0.5rem; }
+.p-2 { padding: 1rem; }
+.p-3 { padding: 1.5rem; }
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.align-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 0.5rem; }
+.gap-2 { gap: 1rem; }
+.gap-3 { gap: 1.5rem; }
+.w-100 { width: 100%; }
+
+input[type="date"]:invalid {
+    background-color: #fdd; /* merah muda jika tanggal invalid */
+}
+
+input[type="date"]:valid {
+    background-color: #dfd; /* hijau jika tanggal valid */
+}
+
+.jadwal-item-box {
+    padding: 10px;
+    border-radius: 6px;
+    background: #eef6ff;
+    margin-bottom: 10px;
+    border: 1px solid #cce0ff;
+}
+
+.form-box {
+    padding: 15px;
+    border-radius: 6px;
+    background: #f9fcff;
+    border: 1px solid #d0e6ff;
+    margin-bottom: 20px;
+}
+
+.btn-primary {
+    padding: 8px 12px;
+    background: #1e88e5;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    padding: 8px 12px;
+    background: #bbb;
+    border: none;
+    color: black;
+    border-radius: 6px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+
+/* =============================== */
+/*         CALENDAR WRAPPER        */
+/* =============================== */
+
+.calendar-month {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    font-family: sans-serif;
+    padding: 15px;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* =============================== */
+/*           HEADER (MONTH)        */
+/* =============================== */
+
+.calendar-month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-month-header-selected-month {
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+.calendar-month-header-selectors span {
+    cursor: pointer;
+    padding: 6px 10px;
+    margin: 0 3px;
+    border-radius: 5px;
+    background: #f0f0f0;
+    font-size: 0.9em;
+    transition: 0.25s;
+}
+
+.calendar-month-header-selectors span:hover {
+    background: #dcdcdc;
+}
+
+/* =============================== */
+/*         DAYS OF WEEK BAR        */
+/* =============================== */
+
+.day-of-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0;
+    margin: 0 0 8px 0;
+    list-style: none;
+}
+
+.day-of-week li {
+    text-align: center;
+    font-weight: bold;
+    color: #444;
+    padding: 4px 0;
+}
+
+/* =============================== */
+/*             DAYS GRID           */
+/* =============================== */
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.calendar-day {
+    text-align: center;
+    padding: 10px 0;
+    margin: 3px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: default;
+    transition: 0.2s;
+}
+
+/* =============================== */
+/*         ACTIVE (clickable)      */
+/* =============================== */
+
+.calendar-day--active {
+    cursor: pointer;
+    background: #e7f7e7;
+    border: 1px solid #8cd98c;
+    color: #276727;
+}
+
+.calendar-day--active:hover {
+    background: #d2f5d2;
+}
+
+/* =============================== */
+/*         DISABLED (blocked)      */
+/* =============================== */
+
+.calendar-day--disabled {
+    background: #f1f1f1;
+    color: #aaa;
+}
+
+/* =============================== */
+/*           SELECTED DATE         */
+/* =============================== */
+
+.calendar-day--selected {
+    background: #4CAF50 !important;
+    color: white !important;
+    border: 1px solid #3c8a3e;
+    font-weight: bold;
+}
+
+/* =============================== */
+/*        RESPONSIVE MOBILE        */
+/* =============================== */
+
+@media (max-width: 500px) {
+    .calendar-month {
+        max-width: 100%;
+        padding: 10px;
+    }
+
+    .calendar-day {
+        padding: 8px 0;
+        font-size: 13px;
+    }
+}
