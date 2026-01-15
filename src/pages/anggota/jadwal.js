@@ -78,38 +78,71 @@ function showModal(title, content, onConfirm = null, confirmText = "Simpan", can
     
     document.body.appendChild(modal);
     
-    // Close modal functions
-    const closeModal = () => document.body.removeChild(modal);
+    // Function untuk menutup modal
+    const closeModal = () => {
+        document.removeEventListener('keydown', handleEsc);
+        document.body.removeChild(modal);
+    };
     
-    document.getElementById('closeModal').onclick = closeModal;
-    document.getElementById('cancelBtn').onclick = closeModal;
+    const closeModalHandler = () => closeModal();
+    document.getElementById('closeModal').onclick = closeModalHandler;
+    document.getElementById('cancelBtn').onclick = closeModalHandler;
     
-    if (onConfirm) {
-        document.getElementById('confirmBtn').onclick = () => {
-            onConfirm();
-            closeModal();
-        };
-    }
-    
-    // Close on ESC key
     const handleEsc = (e) => {
         if (e.key === 'Escape') closeModal();
     };
     document.addEventListener('keydown', handleEsc);
     
-    // Remove event listener when modal closes
-    modal._closeModal = closeModal;
-    modal._handleEsc = handleEsc;
+    if (onConfirm) {
+        let isProcessing = false;
+        
+        document.getElementById('confirmBtn').onclick = async () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            const confirmBtn = document.getElementById('confirmBtn');
+            const originalText = confirmBtn.innerHTML;
+            
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span>Menyimpan...</span>';
+            
+            try {
+                const shouldClose = await onConfirm();
+                
+                if (shouldClose === true) {
+                    closeModal();
+                } else {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
+                    isProcessing = false;
+                }
+                
+            } catch (error) {
+                console.error('Error in modal confirm:', error);
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalText;
+                isProcessing = false;
+            }
+        };
+    }
     
-    return modal;
+    return {
+        element: modal,
+        close: closeModal
+    };
 }
 
 function showConfirmModal(message, onConfirm, title = "Konfirmasi", confirmText = "Ya", cancelText = "Tidak") {
-    return showModal(title, `
+    const modal = showModal(title, `
         <div style="padding: 20px 0;">
             <p style="margin: 0 0 20px 0;">${message}</p>
         </div>
-    `, onConfirm, confirmText, cancelText);
+    `, async () => {
+        await onConfirm();
+        return true;
+    }, confirmText, cancelText);
+    
+    return modal;
 }
 
 export async function detailAnggotaJadwalPage() {
@@ -118,21 +151,21 @@ export async function detailAnggotaJadwalPage() {
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2>Jadwal Pengangkutan Saya</h2>
-                <button id="addDetailBtn" style="padding: 8px 16px; background: #28a745; color: white;">
+                <button id="addDetailBtn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                     + Tambah Jadwal Saya
                 </button>
             </div>
             
             <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="searchDetail" placeholder="Cari berdasarkan tanggal/tim..." style="padding: 8px; width: 250px;">
-                <select id="filterStatus" style="padding: 8px;">
+                <input type="text" id="searchDetail" placeholder="Cari berdasarkan tanggal/tim..." style="padding: 8px; width: 250px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="filterStatus" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="">Semua Status</option>
                     <option value="terjadwal">Terjadwal</option>
                     <option value="dalam_proses">Dalam Proses</option>
                     <option value="selesai">Selesai</option>
                     <option value="dibatalkan">Dibatalkan</option>
                 </select>
-                <select id="filterJadwal" style="padding: 8px; width: 200px;">
+                <select id="filterJadwal" style="padding: 8px; width: 200px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="">Semua Jadwal</option>
                 </select>
             </div>
@@ -141,7 +174,6 @@ export async function detailAnggotaJadwalPage() {
                 <p>Loading data...</p>
             </div>
             
-            <!-- Info untuk anggota -->
             <div style="margin-top: 30px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #007bff;">
                 <h4 style="margin-top: 0; color: #0056b3;">📋 Panduan Penggunaan:</h4>
                 <ul style="margin-bottom: 0;">
@@ -160,21 +192,18 @@ export async function detailAnggotaJadwalPage() {
     document.getElementById('searchDetail').oninput = loadDetailAnggotaJadwalAnggota;
     document.getElementById('filterStatus').onchange = loadDetailAnggotaJadwalAnggota;
     
-    // Load dropdown data (hanya jadwal)
-    loadDropdownDataAnggota();
-
+    // Inisialisasi fungsi ke window untuk event handler di HTML
+    window.showAddDetailFormAnggota = showAddDetailFormAnggota;
     
-    // Load data
+    loadDropdownDataAnggota();
     loadDetailAnggotaJadwalAnggota();
 }
 
 async function loadDropdownDataAnggota() {
     try {
-        // Hanya load jadwal saja
         const jadwal = await fetchAPI(API.jadwal, { headers: getAuthHeaders() });
         const jadwalSelect = document.getElementById('filterJadwal');
         
-        // Clear existing options except first one
         while (jadwalSelect.options.length > 1) {
             jadwalSelect.remove(1);
         }
@@ -203,28 +232,22 @@ async function loadDetailAnggotaJadwalAnggota() {
     const filterJadwal = document.getElementById('filterJadwal')?.value || '';
     
     try {
-        // Load data detail
         const details = await fetchAPI(API.detailAnggotaJadwal, {
             headers: getAuthHeaders()
         });
 
-        // Filter data - hanya tampilkan yang milik anggota ini
+        // Filter data berdasarkan pencarian dan filter
         const filteredDetails = details.filter(detail => {
-            // Gunakan data dari serializer
             const tanggalJadwal = detail.tanggal_jadwal || '';
             const namaTim = detail.nama_tim || '';
             const status = detail.status_pengangkutan || '';
             
-            // Search
             const matchSearch = !search || 
-                tanggalJadwal.includes(search) ||
+                tanggalJadwal.toLowerCase().includes(search.toLowerCase()) ||
                 namaTim.toLowerCase().includes(search.toLowerCase()) ||
                 status.toLowerCase().includes(search.toLowerCase());
             
-            // Filter status
             const matchStatus = !filterStatus || status === filterStatus;
-            
-            // Filter jadwal
             const matchJadwal = !filterJadwal || detail.idJadwal == filterJadwal;
             
             return matchSearch && matchStatus && matchJadwal;
@@ -246,7 +269,7 @@ function renderDetailTableAnggota(detailList) {
                 <div style="font-size: 48px; color: #6c757d; margin-bottom: 15px;">📅</div>
                 <h3 style="color: #6c757d;">Belum ada jadwal</h3>
                 <p style="color: #6c757d;">Klik tombol <strong>"+ Tambah Jadwal Saya"</strong> untuk menambahkan jadwal pengangkutan</p>
-                <button onclick="showAddDetailFormAnggota()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; margin-top: 10px;">
+                <button onclick="showAddDetailFormAnggota()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; margin-top: 10px; cursor: pointer;">
                     + Tambah Jadwal Pertama
                 </button>
             </div>
@@ -274,7 +297,6 @@ function renderDetailTableAnggota(detailList) {
                         const tanggalJadwal = detail.tanggal_jadwal || `Jadwal ID: ${detail.idJadwal}`;
                         const namaTim = detail.nama_tim || 'N/A';
                         
-                        // Format tanggal untuk display
                         let tanggalDisplay = tanggalJadwal;
                         try {
                             const date = new Date(tanggalJadwal);
@@ -286,9 +308,7 @@ function renderDetailTableAnggota(detailList) {
                                     day: 'numeric'
                                 });
                             }
-                        } catch (e) {
-                            // Jika parsing gagal, gunakan format asli
-                        }
+                        } catch (e) {}
                         
                         const catatan = detail.catatan || '';
                         const catatanDisplay = catatan ? 
@@ -299,22 +319,20 @@ function renderDetailTableAnggota(detailList) {
                             new Date(detail.created_at).toLocaleDateString('id-ID') : 
                             '-';
                         
-                        // Tentukan tombol aksi berdasarkan status
                         let actionButtons = '';
                         if (detail.status_pengangkutan === 'terjadwal') {
                             actionButtons = `
-                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #17a2b8; color: white; border: none; border-radius: 3px;">Detail</button>
-                                <button onclick="editDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #ffc107; color: black; border: none; border-radius: 3px;">Edit</button>
-                                <button onclick="batalkanJadwalAnggota(${detailId})" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px;">Batalkan</button>
+                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Detail</button>
+                                <button onclick="editDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #ffc107; color: black; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
+                                <button onclick="batalkanJadwalAnggota(${detailId})" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Batalkan</button>
                             `;
                         } else if (detail.status_pengangkutan === 'dalam_proses') {
                             actionButtons = `
-                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #17a2b8; color: white; border: none; border-radius: 3px;">Detail</button>
-                                <button onclick="updateStatusSelesai(${detailId})" style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 3px;">Selesai</button>
+                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Detail</button>
                             `;
                         } else {
                             actionButtons = `
-                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px;">Detail</button>
+                                <button onclick="viewDetailJadwalAnggota(${detailId})" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Detail</button>
                             `;
                         }
                         
@@ -361,7 +379,6 @@ function renderDetailTableAnggota(detailList) {
     window.viewDetailJadwalAnggota = viewDetailJadwalAnggota;
     window.editDetailJadwalAnggota = editDetailJadwalAnggota;
     window.batalkanJadwalAnggota = batalkanJadwalAnggota;
-    window.updateStatusSelesai = updateStatusSelesai;
 }
 
 function getStatusBadgeAnggota(status) {
@@ -419,35 +436,62 @@ async function loadAnggotaId() {
 }
 
 function showAddDetailFormAnggota() {
-
-    const anggotaData = JSON.parse(localStorage.getItem("anggota"));
-    const idAnggota = anggotaData?.idAnggota;
-
-
+    // Ambil idAnggota dari localStorage (pastikan sudah di-load sebelumnya)
+    const idAnggota = localStorage.getItem("idAnggota");
+    
     if (!idAnggota) {
-        alert("Data Anggota tidak ditemukan! Silakan login ulang.");
+        // Jika tidak ada, coba load dulu
+        loadAnggotaId().then(loadedId => {
+            if (loadedId) {
+                showAddDetailFormAnggota(); // Panggil ulang dengan id yang sudah ada
+            } else {
+                showModal('Error', `
+                    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                        <strong>Data Anggota tidak ditemukan!</strong><br>
+                        Silakan login ulang atau hubungi administrator.
+                    </div>
+                `, () => true);
+            }
+        });
         return;
     }
 
     fetchAPI(API.jadwal, { headers: getAuthHeaders() })
         .then(jadwal => {
-
             const jadwalGrid = createMultiSelectJadwalGridAnggota(jadwal);
 
-            // ⭐ FORM HARUS DIISI – TIDAK BOLEH KOSONG
             const formHTML = `
+                <div id="validationMessageContainer" style="margin-bottom: 15px;"></div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     ${jadwalGrid}
                 </div>
 
                 <hr style="margin: 15px 0;">
 
-                <div>
-                    <label><strong>Catatan (opsional)</strong></label>
-                    <textarea id="catatanAnggota"
-                        style="width: 100%; height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;"
-                        placeholder="Tambahkan catatan..."
-                    ></textarea>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-weight: bold; color: #0d6efd;">
+                            Catatan untuk Petugas Pengangkut
+                        </label>
+                        <span style="background: #d1ecf1; color: #0c5460; padding: 2px 8px; border-radius: 10px; font-size: 12px;">
+                            Opsional
+                        </span>
+                    </div>
+                    
+                    <textarea id="catatanAnggota" 
+                            style="width: 100%; padding: 10px; height: 100px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 14px; resize: vertical;"
+                            placeholder="Tambahkan instruksi atau catatan khusus untuk petugas pengangkut..."
+                            maxlength="500"></textarea>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <div>
+                            <small style="color: #666;">
+                                Contoh: "Sampah ada di belakang rumah", "Mohon diangkut pagi hari", "Ada sampah kaca, hati-hati"
+                            </small>
+                        </div>
+                        <small id="charCount" style="color: #666;">0/500 karakter</small>
+                    </div>
                 </div>
 
                 <input type="hidden" id="selectedJadwalIdsAnggota">
@@ -458,71 +502,143 @@ function showAddDetailFormAnggota() {
                 </div>
             `;
 
-            showModal('Tambah Jadwal Pengangkutan', formHTML, async () => {
-
+            const modal = showModal('Tambah Jadwal Pengangkutan', formHTML, async () => {
                 const selectedJadwalIds = document.getElementById('selectedJadwalIdsAnggota').value;
+                const validationContainer = document.getElementById('validationMessageContainer');
+                
+                validationContainer.innerHTML = '';
 
                 if (!selectedJadwalIds) {
-                    alert('Pilih minimal 1 jadwal!');
-                    return;
+                    validationContainer.innerHTML = `
+                        <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                            <strong>Pilih minimal 1 jadwal!</strong><br>
+                            Silakan pilih jadwal yang ingin ditambahkan
+                        </div>
+                    `;
+                    
+                    validationContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
                 }
 
                 const jadwalIds = selectedJadwalIds.split(',').filter(id => id !== '');
                 const catatan = document.getElementById('catatanAnggota').value || '';
 
+                const modalContent = document.getElementById('modalContent');
+                const originalContent = modalContent.innerHTML;
+                
+                modalContent.innerHTML = `
+                    <div style="text-align: center; padding: 20px 0;">
+                        <div style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; margin: 0 auto 15px; animation: spin 1s linear infinite;"></div>
+                        <style>
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                        </style>
+                        <h5>Menambahkan jadwal...</h5>
+                        <p style="color: #666;">Mohon tunggu sebentar</p>
+                    </div>
+                `;
+
                 let successCount = 0;
                 let errorCount = 0;
                 let errorMessages = [];
 
-                const promises = jadwalIds.map(jadwalId => {
-
+                const promises = jadwalIds.map(async (jadwalId) => {
                     const detailData = {
                         idJadwal: parseInt(jadwalId),
-                        idAnggota: parseInt(idAnggota),   // ⭐ FIX TERPENTING
+                        idAnggota: parseInt(idAnggota),
                         status_pengangkutan: "terjadwal",
                         catatan: catatan
                     };
 
                     console.log("Payload dikirim:", detailData);
 
-                    return fetchAPI(API.detailAnggotaJadwal, {
-                        method: "POST",
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify(detailData)
-                    })
-                        .then(() => successCount++)
-                        .catch(error => {
-                            errorCount++;
-                            errorMessages.push(`Jadwal ${jadwalId}: ${error.message}`);
+                    try {
+                        const response = await fetch(API.detailAnggotaJadwal, {
+                            method: "POST",
+                            headers: {
+                                ...getAuthHeaders(),
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(detailData)
                         });
-                });
 
+                        if (!response.ok) {
+                            let errorMsg = `HTTP ${response.status}`;
+                            try {
+                                const errorData = await response.json();
+                                errorMsg =
+                                    errorData?.non_field_errors?.[0] ||
+                                    errorData?.detail ||
+                                    JSON.stringify(errorData);
+                            } catch (_) {}
+                            throw new Error(errorMsg);
+                        }
+                        successCount++;
+                    } catch (error) {
+                        errorCount++;
+                        errorMessages.push(`Jadwal ${jadwalId}: ${error.message}`);
+                    }
+                });
+                
                 await Promise.allSettled(promises);
 
+                modalContent.innerHTML = originalContent;
+                
                 if (successCount > 0) {
-                    alert(`Berhasil menambahkan ${successCount} jadwal!`);
+                    validationContainer.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">
+                            <strong>Berhasil menambahkan ${successCount} jadwal!</strong><br>
+                            Data akan diperbarui...
+                        </div>
+                    `;
+
+                    alert(`Berhasil menambahkan ${successCount} jadwal!\nData akan diperbarui...`);
+                    
                     loadDetailAnggotaJadwalAnggota();
+                    return true;
                 }
 
                 if (errorCount > 0) {
-                    alert(`Gagal menambah ${errorCount} jadwal:\n${errorMessages.join("\n")}`);
+                    const errorList = errorMessages.map(msg => `<li>${msg}</li>`).join('');
+                    validationContainer.innerHTML = `
+                        <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; border: 1px solid #ffeaa7;">
+                            <strong>Gagal menambah ${errorCount} jadwal</strong><br>
+                            Detail error:
+                            <ul style="margin: 5px 0 0 20px; padding: 0;">${errorList}</ul>
+                        </div>
+                    `;
+                    
+                    return false;
                 }
 
+                return false;
+            });
+
+            // Setup character counter
+            const textarea = document.getElementById('catatanAnggota');
+            const charCount = document.getElementById('charCount');
+            textarea.addEventListener('input', function() {
+                charCount.textContent = `${this.value.length}/500 karakter`;
             });
 
             setupMultiSelectJadwalGridListenersAnggota();
-
+            return modal;
         })
         .catch(error => {
-            alert("Error memuat data jadwal: " + error.message);
+            showModal('Error', `
+                <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                    <strong>Error memuat data jadwal:</strong><br>
+                    ${error.message}
+                </div>
+            `, () => true);
         });
 }
 
-
 function createMultiSelectJadwalGridAnggota(jadwalList) {
-    // Filter jadwal yang belum lewat (hari ini atau masa depan)
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Set ke awal hari
+    now.setHours(0, 0, 0, 0);
     
     const futureJadwal = jadwalList.filter(j => {
         if (!j.tanggalJadwal) return false;
@@ -540,7 +656,6 @@ function createMultiSelectJadwalGridAnggota(jadwalList) {
         `;
     }
     
-    // Group jadwal by bulan
     const groupedByMonth = {};
     
     futureJadwal.forEach(j => {
@@ -573,7 +688,6 @@ function createMultiSelectJadwalGridAnggota(jadwalList) {
 
     let gridHTML = '';
     
-    // Urutkan bulan
     const sortedMonths = Object.keys(groupedByMonth).sort((a, b) => {
         return new Date(a) - new Date(b);
     });
@@ -581,7 +695,6 @@ function createMultiSelectJadwalGridAnggota(jadwalList) {
     sortedMonths.forEach(monthYear => {
         const jadwals = groupedByMonth[monthYear];
         
-        // Urutkan jadwal dalam bulan berdasarkan tanggal
         jadwals.sort((a, b) => a.dateObj - b.dateObj);
         
         gridHTML += `
@@ -598,6 +711,8 @@ function createMultiSelectJadwalGridAnggota(jadwalList) {
             
             gridHTML += `
                 <div class="jadwal-card-anggota" data-jadwal-id="${j.id}" 
+                     data-jadwal-tanggal="${j.formattedDate}"
+                     data-jadwal-tim="${j.namaTim}"
                      style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; 
                             cursor: pointer; transition: all 0.2s; text-align: center;
                             background: white; position: relative; min-height: 70px;">
@@ -629,41 +744,22 @@ function setupMultiSelectJadwalGridListenersAnggota() {
     
     jadwalCards.forEach(card => {
         card.addEventListener('click', function() {
-
             const jadwalId = this.getAttribute('data-jadwal-id');
-
-            // 🔹 AMBIL TANGGAL DENGAN AMAN
-            let tanggalEl = this.querySelector('.tanggal');
-            let tanggal = tanggalEl ? tanggalEl.textContent.trim() : '';
-
-            // fallback kalau HTML lama
-            if (!tanggal && this.children[0]) {
-                tanggal = this.children[0].textContent.trim();
-            }
-
-            // 🔹 AMBIL NAMA TIM DENGAN AMAN
-            let timEl = this.querySelector('.nama-tim');
-            let namaTim = timEl ? timEl.textContent.trim() : '';
-
-            // fallback jika struktur HTML lama
-            if (!namaTim && this.children[1]) {
-                namaTim = this.children[1].textContent.trim();
-            }
-
+            const tanggal = this.getAttribute('data-jadwal-tanggal');
+            const namaTim = this.getAttribute('data-jadwal-tim');
             const checkmark = this.querySelector('.checkmark-anggota');
 
-            // =============== SELECT / UNSELECT HANDLING ===================
             if (selectedJadwalIds.includes(jadwalId)) {
-
                 // Unselect
                 const index = selectedJadwalIds.indexOf(jadwalId);
                 selectedJadwalIds.splice(index, 1);
                 selectedJadwalMap.delete(jadwalId);
 
-                removeCardSelectionStyle(this, checkmark);
-
+                this.style.background = 'white';
+                this.style.borderColor = '#ddd';
+                this.style.boxShadow = 'none';
+                if (checkmark) checkmark.style.display = 'none';
             } else {
-
                 // Batasi max 4 jadwal
                 if (selectedJadwalIds.length >= 4) {
                     alert('Maksimal hanya bisa memilih 4 jadwal!');
@@ -674,13 +770,15 @@ function setupMultiSelectJadwalGridListenersAnggota() {
                 selectedJadwalIds.push(jadwalId);
                 selectedJadwalMap.set(jadwalId, { tanggal, namaTim, id: jadwalId });
 
-                applyCardSelectionStyle(this, checkmark);
+                this.style.background = '#e3f2fd';
+                this.style.borderColor = '#007bff';
+                this.style.boxShadow = '0 0 0 2px rgba(0, 123, 255, 0.25)';
+                if (checkmark) checkmark.style.display = 'flex';
             }
 
             updateSelectedJadwalInfoAnggota(selectedJadwalIds, selectedJadwalMap);
         });
 
-        // ========= HOVER ANIMATION ==========
         card.addEventListener('mouseenter', function() {
             if (!selectedJadwalIds.includes(this.getAttribute('data-jadwal-id'))) {
                 this.style.background = '#f8f9fa';
@@ -700,34 +798,10 @@ function setupMultiSelectJadwalGridListenersAnggota() {
     });
 }
 
-
-// =======================================
-// CARD STYLE FUNCTIONS
-// =======================================
-
-function applyCardSelectionStyle(card, checkmark) {
-    card.style.background = '#e3f2fd';
-    card.style.borderColor = '#007bff';
-    card.style.boxShadow = '0 0 0 2px rgba(0, 123, 255, 0.25)';
-    if (checkmark) checkmark.style.display = 'flex';
-}
-
-function removeCardSelectionStyle(card, checkmark) {
-    card.style.background = 'white';
-    card.style.borderColor = '#ddd';
-    card.style.boxShadow = 'none';
-    if (checkmark) checkmark.style.display = 'none';
-}
-
-
 function updateSelectedJadwalInfoAnggota(selectedIds, selectedMap) {
-    // Update counter
     document.getElementById('selectedCountAnggota').textContent = selectedIds.length;
-    
-    // Update hidden input
     document.getElementById('selectedJadwalIdsAnggota').value = selectedIds.join(',');
     
-    // Update list jadwal terpilih
     const selectedList = document.getElementById('selectedJadwalListAnggota');
     
     if (selectedIds.length === 0) {
@@ -761,20 +835,12 @@ function updateSelectedJadwalInfoAnggota(selectedIds, selectedMap) {
     selectedList.innerHTML = listHTML;
 }
 
-function removeSelectedJadwalAnggota(jadwalId) {
-    const card = document.querySelector(`.jadwal-card-anggota[data-jadwal-id="${jadwalId}"]`);
-    if (card) {
-        card.click();
-    }
-}
-
 async function viewDetailJadwalAnggota(detailId) {
     try {
         const detail = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
             headers: getAuthHeaders()
         });
 
-        // Fetch detail jadwal jika diperlukan
         let jadwalDetail = null;
         if (detail.idJadwal) {
             try {
@@ -816,9 +882,6 @@ async function viewDetailJadwalAnggota(detailId) {
                         
                         <div style="font-weight: 600; color: #555;">Dibuat:</div>
                         <div>${detail.created_at ? new Date(detail.created_at).toLocaleString('id-ID') : 'N/A'}</div>
-                        
-                        <div style="font-weight: 600; color: #555;">Terakhir Update:</div>
-                        <div>${detail.updated_at ? new Date(detail.updated_at).toLocaleString('id-ID') : 'N/A'}</div>
                     </div>
                 </div>
             </div>
@@ -836,21 +899,41 @@ async function editDetailJadwalAnggota(detailId) {
             headers: getAuthHeaders()
         });
 
-        // Hanya boleh edit jika status masih "terjadwal"
         if (detail.status_pengangkutan !== 'terjadwal') {
-            alert('Hanya jadwal dengan status "Terjadwal" yang dapat diedit!');
+            showModal('Peringatan', `
+                <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffecb5;">
+                    <strong>Hanya jadwal dengan status "Terjadwal" yang dapat diedit!</strong><br>
+                    Status saat ini: ${detail.status_pengangkutan}
+                </div>
+            `, () => true);
             return;
         }
 
+        const currentCatatan = detail.catatan || '';
+        
         const formHTML = `
+            <div id="validationMessageContainer"></div>
+            
             <form id="editDetailFormAnggota">
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px;">
                         <strong>Catatan</strong>
                         <small style="color: #666; font-weight: normal;"> - Update informasi tambahan jika diperlukan</small>
                     </label>
-                    <textarea id="catatanEdit" style="width: 100%; padding: 8px; height: 100px;" 
-                              placeholder="Contoh: Sampah organik 3 karung, plastik 1 karung, ada barang elektronik rusak...">${detail.catatan || ''}</textarea>
+                    <textarea id="catatanEdit" style="width: 100%; padding: 8px; height: 100px; border: 1px solid #ddd; border-radius: 4px;" 
+                              placeholder="Contoh: Sampah organik 3 karung, plastik 1 karung, ada barang elektronik rusak...">${currentCatatan}</textarea>
+                
+                    ${currentCatatan ? `
+                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
+                        <small style="color: #666; font-weight: bold;">Catatan saat ini:</small>
+                        <div style="color: #333; margin-top: 5px; font-size: 14px;">${currentCatatan}</div>
+                    </div>
+                    ` : `
+                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #ffc107;">
+                        <small style="color: #666; font-weight: bold;">Catatan saat ini:</small>
+                        <div style="color: #999; font-style: italic; margin-top: 5px; font-size: 14px;">Tidak ada catatan</div>
+                    </div>
+                    `}
                 </div>
                 
                 <div style="padding: 10px; background: #fff3cd; border-radius: 5px; margin-bottom: 15px;">
@@ -863,10 +946,48 @@ async function editDetailJadwalAnggota(detailId) {
         `;
 
         showModal('Edit Catatan Jadwal', formHTML, async () => {
-            const catatan = document.getElementById('catatanEdit').value || '';
+            const catatan = document.getElementById('catatanEdit').value.trim();
+            const validationContainer = document.getElementById('validationMessageContainer');
+            
+            validationContainer.innerHTML = '';
+
+            if (!catatan) {
+                validationContainer.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                        <strong>Catatan tidak boleh kosong!</strong><br>
+                        Silakan isi catatan atau ketik "-" jika tidak ada catatan
+                    </div>
+                `;
+                
+                validationContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            if (catatan === currentCatatan) {
+                validationContainer.innerHTML = `
+                    <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; border: 1px solid #ffeaa7;">
+                        <strong>Tidak ada perubahan!</strong><br>
+                        Catatan masih sama dengan sebelumnya. Silakan ubah catatan jika ingin memperbarui
+                    </div>
+                `;
+                
+                validationContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            const modalContent = document.getElementById('modalContent');
+            const originalContent = modalContent.innerHTML;
+            
+            modalContent.innerHTML = `
+                <div style="text-align: center; padding: 20px 0;">
+                    <div style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; margin: 0 auto 15px; animation: spin 1s linear infinite;"></div>
+                    <h5>Memperbarui catatan...</h5>
+                    <p style="color: #666;">Mohon tunggu sebentar</p>
+                </div>
+            `;
 
             try {
-                await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
+                const response = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
                     method: 'PATCH',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({
@@ -874,16 +995,46 @@ async function editDetailJadwalAnggota(detailId) {
                     })
                 });
 
-                alert('✅ Catatan jadwal berhasil diupdate!');
-                loadDetailAnggotaJadwalAnggota();
+                modalContent.innerHTML = originalContent;
+                
+                validationContainer.innerHTML = `
+                    <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">
+                        <strong>✅ Catatan jadwal berhasil diperbarui!</strong><br>
+                        Halaman akan diperbarui...
+                    </div>
+                `;
+
+                alert("✅ Catatan jadwal berhasil diperbarui!")
+                
+                setTimeout(() => {
+                    loadDetailAnggotaJadwalAnggota();
+                }, 1000);
+                
+                return true;
+
             } catch (error) {
                 console.error('Update error:', error);
-                alert('Error: ' + error.message);
+                
+                modalContent.innerHTML = originalContent;
+                
+                validationContainer.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                        <strong>Gagal memperbarui catatan!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+                
+                return false;
             }
         });
 
     } catch (error) {
-        alert('Error loading data: ' + error.message);
+        showModal('Error', `
+            <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
+                <strong>Error memuat data!</strong><br>
+                ${error.message}
+            </div>
+        `, () => true);
     }
 }
 
@@ -906,25 +1057,10 @@ async function batalkanJadwalAnggota(detailId) {
     }, 'Batalkan Jadwal', 'Ya, Batalkan', 'Tidak');
 }
 
-async function updateStatusSelesai(detailId) {
-    showConfirmModal('Apakah pengangkutan sudah selesai?', async () => {
-        try {
-            await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    status_pengangkutan: 'selesai'
-                })
-            });
-            
-            alert('✅ Status jadwal berhasil diupdate menjadi "Selesai"!');
-            loadDetailAnggotaJadwalAnggota();
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    }, 'Konfirmasi Selesai', 'Ya, Sudah Selesai', 'Belum');
-}
-
-// Tambahkan ke window untuk akses global
-window.showAddDetailFormAnggota = showAddDetailFormAnggota;
-window.removeSelectedJadwalAnggota = removeSelectedJadwalAnggota;
+// Tambahkan fungsi removeSelectedJadwalAnggota ke window
+window.removeSelectedJadwalAnggota = function(jadwalId) {
+    const card = document.querySelector(`.jadwal-card-anggota[data-jadwal-id="${jadwalId}"]`);
+    if (card) {
+        card.click();
+    }
+};

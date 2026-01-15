@@ -590,15 +590,6 @@ async function showAnggotaDetail(anggotaId) {
               <span class="info-label-lg">Jenis Sampah</span>
               <span class="info-value-lg">${anggota.jenisSampah || '-'}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label-lg">Tanggal Dibuat</span>
-              <span class="info-value-lg">${new Date(anggota.created_at).toLocaleDateString('id-ID', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}</span>
-            </div>
           </div>
           
           <div class="info-card">
@@ -638,27 +629,14 @@ async function showAnggotaDetail(anggotaId) {
           
           ${lat && lng ? `
             <div class="map-controls">
-              <button onclick="openInGoogleMaps(${lat}, ${lng}, '${anggota.nama.replace(/'/g, "\\'")}')" 
-                      class="map-btn">
-                <i class="bi bi-google"></i> Google Maps
+              <button
+                onclick="showLocationMap(${anggota.latitude}, ${anggota.longitude}, '${(anggota.nama || "").replace(/'/g, "\\'")}', '${(anggota.alamat || "").replace(/'/g, "\\'")}')"
+                class="btn btn-sm btn-outline-success">
+                <i class="bi bi-map"></i> Peta & Rute
               </button>
             </div>
           ` : ''}
         </div>
-        
-        <!-- Action Buttons -->
-        ${lat && lng ? `
-          <div class="action-buttons">
-            <button onclick="openInGoogleMaps(${lat}, ${lng}, '${anggota.nama.replace(/'/g, "\\'")}')" 
-                    class="action-btn primary">
-              <i class="bi bi-google"></i> Buka di Google Maps
-            </button>
-            <button onclick="copyToClipboard('${latDisplay}, ${lngDisplay}')" 
-                    class="action-btn secondary">
-              <i class="bi bi-clipboard"></i> Salin Koordinat
-            </button>
-          </div>
-        ` : ''}
       </div>
     `;
 

@@ -1,10 +1,25 @@
 import { API, getAuthHeaders, getAuthHeadersMultipart, fetchAPI } from "../../api.js";
 import { authGuard } from "../../utils/authGuard.js";
 import { loadLeaflet, initMap, addMarker, initMapForm } from "../../utils/mapConfig.js";
-import { showLaporanDetail } from "./detail_laporan.js";
+import { showToast } from "../../utils/toast.js";
+import { showDetail } from "./detail_laporan.js";
 
 // Deklarasi variabel global untuk user
 let currentUser = null;
+let isGettingLocation = false; // Tambahkan variabel global
+
+let currentPage = 1;
+const itemsPerPage = 9;
+let laporanData = []; // isi dari API
+
+// Deklarasi variabel untuk GPS
+let gpsMarker = null;
+let locationFromGPS = false;
+let selectedLocation = {
+    latitude: null,
+    longitude: null
+};
+
 
 export async function laporanPage() {
     const user = await authGuard();
@@ -27,7 +42,7 @@ export async function laporanPage() {
         return;
     }
 
-    // Validasi role
+    // ✅ PERBAIKAN DI SINI: Validasi role
     if (user.role !== "anggota") {
         main.innerHTML = `
             <div style="background: #fff3cd; color: #856404; padding: 20px; border-radius: 8px; text-align: center;">
@@ -42,6 +57,7 @@ export async function laporanPage() {
         return;
     }
 
+    // ✅ HTML untuk role ANGGOTA (ini yang seharusnya ditampilkan)
     main.innerHTML = `
         <div style="max-width: 1200px; margin: 0 auto;">
             <!-- Header -->
@@ -165,9 +181,6 @@ export async function laporanPage() {
                     </div>
                 </div>
             </div>
-
-            <!-- Modal Form -->
-            <div id="formModal" style="display: none;"></div>
         </div>
     `;
 
@@ -178,7 +191,7 @@ export async function laporanPage() {
         loadMap()
     ]);
 
-    // Event listener untuk buat laporan
+    // ✅ Sekarang btnBuatLaporan akan ditemukan karena HTML sudah ditampilkan
     document.getElementById("btnBuatLaporan").onclick = showCreateLaporanForm;
     document.getElementById("btnRefreshLaporan").onclick = async () => {
         document.getElementById("btnRefreshLaporan").innerHTML = "🔄 Memuat...";
@@ -357,21 +370,31 @@ async function loadLaporanWithContainer(containerId = "laporanContainer", filter
             return;
         }
 
-        // Tampilkan laporan yang sudah difilter
-        container.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-                ${filteredData.map(laporan => renderLaporanCard(laporan)).join('')}
-            </div>
-            
-            <!-- Summary info -->
-            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                <small style="color: #666;">
-                    Menampilkan <strong>${filteredData.length}</strong> dari <strong>${data.length}</strong> laporan
-                    ${filters.status ? ` | Status: ${filters.status}` : ''}
-                    ${filters.myReport ? ` | ${filters.myReport === 'my' ? 'Laporan Saya' : 'Laporan Orang Lain'}` : ''}
-                </small>
-            </div>
-        `;
+        // simpan hasil filter ke global
+    laporanData = filteredData;
+    currentPage = 1;
+
+    // render container + pagination wrapper
+    container.innerHTML = `
+        <div id="laporanGrid"
+            style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+        </div>
+
+        <div id="pagination"
+            style="margin-top:25px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+            <small style="color: #666;">
+                Menampilkan <strong>${filteredData.length}</strong> dari <strong>${data.length}</strong> laporan
+                ${filters.status ? ` | Status: ${filters.status}` : ''}
+                ${filters.myReport ? ` | ${filters.myReport === 'my' ? 'Laporan Saya' : 'Laporan Orang Lain'}` : ''}
+            </small>
+        </div>
+    `;
+
+    renderLaporanPage(1);
+
 
     } catch (err) {
         console.error("Error loading laporan:", err);
@@ -388,32 +411,95 @@ async function loadLaporanWithContainer(containerId = "laporanContainer", filter
     }
 }
 
+function renderLaporanPage(page) {
+    const grid = document.getElementById("laporanGrid");
+    if (!grid) return;
+
+    currentPage = page;
+
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageData = laporanData.slice(start, end);
+
+    grid.innerHTML = pageData.map(laporan => renderLaporanCard(laporan)).join("");
+    renderPagination();
+}
+
 async function loadLaporan() {
     await loadLaporanWithContainer("laporanContainer");
 }
 
+function renderPagination() {
+    const pagination = document.getElementById("pagination");
+    if (!pagination) return;
+
+    const totalPages = Math.ceil(laporanData.length / itemsPerPage);
+    let html = "";
+
+    html += `
+        <button ${currentPage === 1 ? "disabled" : ""}
+            onclick="renderLaporanPage(${currentPage - 1})">⬅ Prev</button>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <button onclick="renderLaporanPage(${i})"
+                style="
+                    padding:6px 12px;
+                    border-radius:4px;
+                    border:1px solid #ddd;
+                    ${i === currentPage ? "background:#2196F3;color:white;" : ""}
+                ">
+                ${i}
+            </button>
+        `;
+    }
+
+    html += `
+        <button ${currentPage === totalPages ? "disabled" : ""}
+            onclick="renderLaporanPage(${currentPage + 1})">Next ➡</button>
+    `;
+
+    pagination.innerHTML = html;
+}
+
 function renderLaporanCard(laporan) {
+    // **PERBAIKAN: Validasi data laporan**
+    if (!laporan || typeof laporan !== 'object') {
+        console.error("Invalid laporan data in renderLaporanCard:", laporan);
+        return renderErrorCard("Data laporan tidak valid");
+    }
+
     const statusColors = {
         'selesai': '#4CAF50',
         'diproses': '#2196F3',
         'diterima': '#FF9800',
         'ditolak': '#f44336',
         'dilaporkan': '#9C27B0',
+        'pending': '#FF9800', // Tambahkan pending
         'default': '#757575'
     };
     
     const status = laporan.status || 'dilaporkan';
     const statusColor = statusColors[status] || statusColors.default;
     
-    // Tentukan apakah laporan ini milik user saat ini
-    const isMyReport = currentUser && (
-        laporan.idUser === currentUser.id || 
-        laporan.id_user === currentUser.id ||
-        laporan.nama === currentUser.username
-    );
+    // **PERBAIKAN: Validasi currentUser**
+    let isMyReport = false;
+    if (currentUser) {
+        isMyReport = (
+            laporan.idUser === currentUser.id || 
+            laporan.id_user === currentUser.id ||
+            laporan.nama === currentUser.username
+        );
+    }
     
-    // Tampilkan nama pelapor
+    // **PERBAIKAN: Gunakan nilai default untuk field yang mungkin tidak ada**
     const reporterName = laporan.nama || 'Tidak diketahui';
+    const deskripsi = laporan.deskripsi || 'Laporan Sampah';
+    const alamat = laporan.alamat || 'Tidak ada alamat';
+    const tanggalLapor = laporan.tanggal_lapor || laporan.created_at;
+    const laporanId = laporan.idLaporan || laporan.id || 'N/A';
+    const hasLocation = laporan.latitude && laporan.longitude;
     
     return `
         <div style="background: white; border: 1px solid #eee; border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;"
@@ -423,7 +509,8 @@ function renderLaporanCard(laporan) {
                 <div style="height: 180px; overflow: hidden; position: relative;">
                     <img src="${laporan.foto_bukti}" 
                          alt="Foto laporan" 
-                         style="width: 100%; height: 100%; object-fit: cover;">
+                         style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjY2NjIj7imYvigIwgRm90byBFcnJvcjwvdGV4dD48L3N2Zz4='">
                     ${isMyReport ? `
                         <div style="position: absolute; top: 10px; left: 10px; background: #9C27B0; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
                             Laporan Anda
@@ -444,7 +531,9 @@ function renderLaporanCard(laporan) {
             <div style="padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                     <div>
-                        <h3 style="margin: 0; font-size: 18px; color: #333;">${laporan.deskripsi?.substring(0, 50) || 'Laporan Sampah'}${laporan.deskripsi?.length > 50 ? '...' : ''}</h3>
+                        <h3 style="margin: 0; font-size: 18px; color: #333;">
+                            ${deskripsi.substring(0, 50)}${deskripsi.length > 50 ? '...' : ''}
+                        </h3>
                     </div>
                     <span style="background: ${statusColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                         ${status.toUpperCase()}
@@ -462,35 +551,33 @@ function renderLaporanCard(laporan) {
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #555;">
                         <span style="font-size: 14px; min-width: 20px;">📍</span>
                         <div>
-                            <div style="font-size: 14px; font-weight: 500;">${laporan.alamat?.substring(0, 60) || 'Tidak ada alamat'}${laporan.alamat?.length > 60 ? '...' : ''}</div>
+                            <div style="font-size: 14px; font-weight: 500;">
+                                ${alamat.substring(0, 60)}${alamat.length > 60 ? '...' : ''}
+                            </div>
                             <small style="font-size: 12px; color: #888;">Lokasi</small>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px; color: #555;">
                         <span style="font-size: 14px; min-width: 20px;">📅</span>
                         <div>
-                            <div style="font-size: 14px; font-weight: 500;">${formatDate(laporan.tanggal_lapor)}</div>
+                            <div style="font-size: 14px; font-weight: 500;">${formatDate(tanggalLapor)}</div>
                             <small style="font-size: 12px; color: #888;">Tanggal Lapor</small>
                         </div>
                     </div>
                 </div>
                 
-                ${laporan.latitude && laporan.longitude ? `
-                    <button onclick="showLaporanDetail(${laporan.idLaporan || laporan.id})" 
+                ${hasLocation ? `
+                    <button onclick="showDetail(${laporanId})" 
                             style="width: 100%; background: #2196F3; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;"
                             onmouseover="this.style.background='#1976D2'"
                             onmouseout="this.style.background='#2196F3'">
                         <span style="font-size: 16px;">🔍</span> Detail Laporan
                     </button>
                 ` : `
-                    <button onclick="showLaporanDetail(${laporan.idLaporan || laporan.id})" 
-                            style="width: 100%; background: #757575; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 16px;">🔍</span> Detail Laporan
-                    </button>
-                `}
                     <div style="width: 100%; background: #f5f5f5; border: 1px dashed #ddd; color: #999; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center;">
                         📍 Tidak ada lokasi
                     </div>
+                `}
             </div>
         </div>
     `;
@@ -498,44 +585,35 @@ function renderLaporanCard(laporan) {
 
 // Update fungsi showLaporanOnMap untuk menerima deskripsi
 window.showLaporanOnMap = function(latitude, longitude, deskripsi = '') {
-    const modal = document.getElementById("formModal") || document.createElement('div');
-    modal.id = 'formModal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div style="background: white; width: 90%; max-width: 500px; border-radius: 10px; padding: 0;">
-                <div style="background: #4CAF50; color: white; padding: 15px 20px; border-radius: 10px 10px 0 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 18px;">📍 Lokasi Laporan</h3>
-                        <button onclick="document.getElementById('formModal').style.display='none'" 
-                                style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0;">
-                            ×
-                        </button>
-                    </div>
+    // Gunakan SweetAlert untuk menampilkan peta detail
+    const mapHTML = `
+        <div style="margin-bottom: 15px;">
+            ${deskripsi ? `
+                <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 14px; color: #333;">${deskripsi}</p>
                 </div>
-                <div style="padding: 20px;">
-                    ${deskripsi ? `
-                        <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px;">
-                            <p style="margin: 0; font-size: 14px; color: #333;">${deskripsi}</p>
-                        </div>
-                    ` : ''}
-                    <div id="detailMap" style="height: 300px; border-radius: 6px; overflow: hidden; border: 1px solid #ddd;"></div>
-                    <div style="margin-top: 15px; text-align: center;">
-                        <button onclick="document.getElementById('formModal').style.display='none'"
-                                style="background: #757575; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-                            Tutup
-                        </button>
-                    </div>
-                </div>
-            </div>
+            ` : ''}
+            <div id="detailMap" style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 6px;"></div>
         </div>
     `;
     
-    document.body.appendChild(modal);
-    
-    loadLeaflet(() => {
-        const map = initMap("detailMap", latitude, longitude, 15);
-        addMarker(map, latitude, longitude, deskripsi || "Lokasi Laporan");
+    Swal.fire({
+        title: '📍 Lokasi Laporan',
+        html: mapHTML,
+        width: '500px',
+        showConfirmButton: false,
+        showCloseButton: true,
+        didOpen: () => {
+            loadLeaflet(() => {
+                const map = initMap("detailMap", latitude, longitude, 15);
+                addMarker(map, latitude, longitude, deskripsi || "Lokasi Laporan");
+                
+                // Refresh peta setelah modal terbuka
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            });
+        }
     });
 };
 
@@ -693,190 +771,1097 @@ async function loadMap() {
     }
 }
 
-// Fungsi addMarker yang mendukung custom color (perlu ditambahkan ke mapConfig.js)
-// Jika belum ada, tambahkan parameter color ke fungsi addMarker di mapConfig.js
-
 function showCreateLaporanForm() {
-    const modal = document.getElementById("formModal");
-    if (!modal) return;
-
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div style="background: white; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: 10px; padding: 0;">
-                <div style="background: linear-gradient(135deg, #2196F3, #1976D2); color: white; padding: 20px; border-radius: 10px 10px 0 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; font-size: 20px;">📝 Buat Laporan Baru</h2>
-                        <button onclick="document.getElementById('formModal').style.display='none'" 
-                                style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0;">
-                            ×
-                        </button>
+    // Reset variabel GPS
+    gpsMarker = null;
+    locationFromGPS = false;
+    
+    // Buat form HTML untuk modal
+    const formHTML = `
+        <form id="modalLaporanForm" class="needs-validation" novalidate style="text-align: left;">
+            <!-- INFO JENIS SAMPAH -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 20px; margin-right: 10px;">🗑️</span>
+                    <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Informasi Jenis Sampah</h4>
+                </div>
+                <div style="font-size: 13px; opacity: 0.95;">
+                    <p style="margin: 0 0 10px 0;">Sebutkan jenis sampah dalam deskripsi untuk analisis yang lebih baik:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #ff6b6b;">●</span> B3 (Baterai, Elektronik, Bahan Kimia)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #4ecdc4;">●</span> Plastik (Botol, Kresek, Sedotan)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #45b7d1;">●</span> Organik (Sisa Makanan, Daun, Sayur)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #96ceb4;">●</span> Logam (Kaleng, Besi, Aluminium)
+                        </span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #ffeaa7;">●</span> Kaca (Botol, Beling, Pecahan)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #fab1a0;">●</span> Kertas (Koran, Kardus, Buku)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #a29bfe;">●</span> Karet (Ban, Sandal, Karet Gelang)
+                        </span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                            <span style="color: #fd79a8;">●</span> Tekstil (Kain, Baju, Sepatu)
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alamat Lokasi -->
+            <div class="mb-3">
+                <label for="modalAlamat" class="form-label fw-bold">
+                    <span style="color: #e74c3c;">📍</span> Kelurahan Lokasi Sampah
+                </label>
+                <input type="text" class="form-control" id="modalAlamat" 
+                       placeholder="Contoh: Kelurahan Oebobo" required>
+                <div class="invalid-feedback">
+                    Mohon isi alamat lokasi sampah.
+                </div>
+            </div>
+            
+            <!-- Deskripsi Sampah -->
+            <div class="mb-3">
+                <label for="modalDeskripsi" class="form-label fw-bold">
+                    <span style="color: #2ecc71;">📝</span> Deskripsi Sampah
+                </label>
+                <textarea class="form-control" id="modalDeskripsi" rows="4"
+                          placeholder="Contoh: 'Tumpukan sampah plastik (botol mineral, kresek) di pinggir jalan, volume sekitar 2m³, menutupi saluran air'
+                        
+Contoh lainnya:
+• 'Limbah B3: baterai bekas dan elektronik rusak dibuang sembarangan'
+• 'Sampah organik: sisa sayuran dan daun membusuk di taman'
+• 'Sampah campuran: plastik, kertas, dan kaleng berserakan'
+                        
+Mohon sebutkan:
+1. Jenis sampah (plastik/organik/logam/B3/dll)
+2. Perkiraan volume/banyaknya
+3. Kondisi sekitar (berbau, mengganggu, dll)" required></textarea>
+                <div class="invalid-feedback">
+                    Mohon isi deskripsi sampah.
+                </div>
+                <div class="form-text text-muted">
+                    <span style="color: #3498db;">💡</span> Deskripsi yang jelas membantu analisis dampak lingkungan
+                </div>
+            </div>
+            
+            <!-- Peta Lokasi -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    <span style="color: #9b59b6;">🗺️</span> Peta Lokasi
+                </label>
+                <p class="text-muted mb-2 small">Tentukan lokasi sampah di peta atau gunakan GPS</p>
+                
+                <!-- Tombol GPS di atas peta -->
+                <div class="d-flex gap-2 mb-2 flex-wrap">
+                    <button type="button" id="modalPilihLokasiPeta" 
+                            class="btn btn-primary flex-fill d-flex align-items-center justify-content-center gap-2">
+                        <span style="font-size: 16px;">🗺️</span> Pilih di Peta
+                    </button>
+                    
+                    <button type="button" id="modalGetLocation" 
+                            class="btn btn-success flex-fill d-flex align-items-center justify-content-center gap-2">
+                        <span style="font-size: 16px;">📍</span> GPS Saya
+                    </button>
+                    
+                    <button type="button" id="modalResetMap" 
+                            class="btn btn-danger flex-fill d-flex align-items-center justify-content-center gap-2">
+                        <span style="font-size: 16px;">🔄</span> Reset Peta
+                    </button>
+                </div>
+                
+                <!-- Peta utama -->
+                <div id="modalMapSelect" style="height: 250px; width: 100%; border-radius: 6px; border: 2px solid #dee2e6;"></div>
+                
+                <!-- Koordinat Input -->
+                <div class="row g-2 mt-2">
+                    <div class="col-md-6">
+                        <label for="modalLatitude" class="form-label small">
+                            <span style="color: #f39c12;">🌐</span> Latitude
+                        </label>
+                        <input type="number" step="0.00000001" class="form-control" id="modalLatitude" 
+                               placeholder="-10.1935921" required readonly>
+                        <div class="invalid-feedback">
+                            Mohon pilih lokasi di peta.
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="modalLongitude" class="form-label small">
+                            <span style="color: #f39c12;">🌐</span> Longitude
+                        </label>
+                        <input type="number" step="0.00000001" class="form-control" id="modalLongitude" 
+                               placeholder="123.6149376" required readonly>
+                        <div class="invalid-feedback">
+                            Mohon pilih lokasi di peta.
+                        </div>
                     </div>
                 </div>
                 
-                <div style="padding: 25px;">
-                    <form id="formLaporan">
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">Alamat Lokasi Sampah</label>
-                            <input type="text" id="alamat" placeholder="Contoh: Jl. Sudirman No. 10, RT 01/RW 02" required
-                                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">Deskripsi Sampah</label>
-                            <textarea id="deskripsi" placeholder="Jelaskan kondisi sampah (jenis, volume, kondisi sekitar)" required rows="4"
-                                      style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">
-                                📍 Pilih Lokasi di Peta (Klik pada peta)
-                            </label>
-                            <div id="mapForm" style="height: 250px; width: 100%; border: 1px solid #ddd; border-radius: 6px;"></div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">Latitude</label>
-                                <input type="number" step="0.00000001" id="latitude" placeholder="-10.1935921" required readonly
-                                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #f9f9f9;">
-                            </div>
-                            
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">Longitude</label>
-                                <input type="number" step="0.00000001" id="longitude" placeholder="123.6149376" required readonly
-                                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #f9f9f9;">
-                            </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 25px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">📷 Foto Bukti (Opsional)</label>
-                            <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">Maksimal 5MB. Format: JPG, PNG, JPEG</p>
-                            <input type="file" id="foto" accept="image/*"
-                                   style="width: 100%; padding: 12px; border: 2px dashed #ddd; border-radius: 6px; font-size: 14px;">
-                            
-                            <div id="previewContainer" style="margin-top: 15px; display: none;">
-                                <img id="imagePreview" style="max-width: 100%; max-height: 200px; border-radius: 6px; border: 1px solid #ddd;">
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; gap: 10px;">
-                            <button type="submit" id="btnSubmit"
-                                    style="flex: 1; background: #4CAF50; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                📤 Kirim Laporan
-                            </button>
-                            <button type="button" onclick="document.getElementById('formModal').style.display='none'"
-                                    style="flex: 1; background: #757575; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 16px; cursor: pointer;">
-                                ❌ Batal
-                            </button>
-                        </div>
-                        
-                        <div id="formMessage" style="margin-top: 15px;"></div>
-                    </form>
+                <!-- Status GPS -->
+                <div id="modalGpsStatus" class="mt-2"></div>
+            </div>
+            
+            <!-- Foto Bukti -->
+            <div class="mb-3">
+                <label for="modalFoto" class="form-label fw-bold">
+                    <span style="color: #e67e22;">📷</span> Foto Bukti
+                </label>
+                <p class="text-muted small">Maksimal 5MB. Format: JPG, PNG, JPEG</p>
+                <input type="file" class="form-control" id="modalFoto" accept="image/*" required>
+                <div class="invalid-feedback">
+                    Mohon unggah foto bukti.
                 </div>
+                
+                <!-- Preview Foto -->
+                <div id="modalPreviewContainer" class="mt-2" style="display: none;">
+                    <div class="card border-secondary">
+                        <div class="card-body p-2">
+                            <p class="small mb-1"><strong>Pratinjau Foto:</strong></p>
+                            <img id="modalImagePreview" class="img-fluid rounded" style="max-height: 150px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informasi tambahan -->
+            <div class="alert alert-warning" role="alert">
+                <div class="d-flex">
+                    <i class="bi bi-lightbulb me-2 fs-5"></i>
+                    <div>
+                        <strong>Tips Pengisian:</strong> Sebutkan jenis sampah dengan jelas dalam deskripsi untuk membantu tim analisis menentukan tingkat bahaya dan prioritas penanganan.
+                    </div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    // Tampilkan modal
+    showModal(
+        '<strong style="color: #2196F3;">📝 Buat Laporan Baru</strong>',
+        formHTML,
+        async () => {
+            // Fungsi yang dipanggil saat tombol Simpan diklik
+            const form = document.getElementById('modalLaporanForm');
+            if (!form.checkValidity()) {
+                // Trigger validation pada semua field
+                const fields = form.querySelectorAll('input, textarea, select');
+                fields.forEach(field => {
+                    validateModalField(field);
+                });
+                
+                // Scroll ke field pertama yang error
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                return false; // Mencegah modal ditutup
+            }
+            
+            // Validasi foto
+            const fotoInput = document.getElementById('modalFoto');
+            if (!fotoInput || !fotoInput.files || fotoInput.files.length === 0) {
+                fotoInput.classList.add('is-invalid');
+                fotoInput.setCustomValidity('Mohon unggah foto bukti');
+                fotoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+            
+            // Kumpulkan data form
+            const formData = {
+                alamat: document.getElementById('modalAlamat').value.trim(),
+                deskripsi: document.getElementById('modalDeskripsi').value.trim(),
+                latitude: parseFloat(document.getElementById('modalLatitude').value),
+                longitude: parseFloat(document.getElementById('modalLongitude').value),
+                foto: document.getElementById('modalFoto')?.files[0]
+            };
+            
+            // Proses submit laporan
+            await submitLaporan(formData);
+            return true; // Tutup modal
+        },
+        () => {
+            // Fungsi yang dipanggil saat modal ditutup
+            console.log('Modal ditutup');
+        }
+    );
+    
+    // Setup setelah modal ditampilkan
+    setTimeout(() => {
+        // Set default values
+        const defaultLat = -10.1935921;
+        const defaultLng = 123.6149376;
+        
+        document.getElementById('modalLatitude').value = defaultLat;
+        document.getElementById('modalLongitude').value = defaultLng;
+        
+        // Setup validation
+        setupModalValidation();
+        
+        // Inisialisasi peta
+        initModalMap();
+        
+        // Setup event listeners
+        setupModalEventListeners();
+    }, 100);
+}
+
+function setupModalValidation() {
+    const form = document.getElementById('modalLaporanForm');
+    if (!form) return;
+    
+    // Real-time validation untuk semua required fields
+    const fields = form.querySelectorAll('input[required], textarea[required]');
+    
+    fields.forEach(field => {
+        // Event listener untuk real-time validation
+        field.addEventListener('input', function() {
+            validateModalField(this);
+        });
+        
+        field.addEventListener('blur', function() {
+            validateModalField(this);
+        });
+    });
+}
+
+function validateModalField(field) {
+    if (!field) return;
+    
+    // Clear previous validation
+    field.classList.remove('is-valid', 'is-invalid');
+    
+    if (field.checkValidity()) {
+        field.classList.add('is-valid');
+    } else {
+        field.classList.add('is-invalid');
+    }
+}
+
+async function initModalMap() {
+    try {
+        const defaultLat = -10.1935921;
+        const defaultLng = 123.6149376;
+        
+        const map = await initMapForm(
+            "modalMapSelect", 
+            "modalLatitude", 
+            "modalLongitude", 
+            defaultLat, 
+            defaultLng
+        );
+        
+        window.__formLaporanMap = map;
+        window.__modalGpsMarker = null;
+        
+        // Event untuk klik peta
+        map.on('click', function(e) {
+            const { lat, lng } = e.latlng;
+            
+            const latInput = document.getElementById('modalLatitude');
+            const lngInput = document.getElementById('modalLongitude');
+            
+            if (latInput && lngInput) {
+                latInput.value = lat.toFixed(7);
+                lngInput.value = lng.toFixed(7);
+                
+                // Validasi input setelah diisi
+                validateModalField(latInput);
+                validateModalField(lngInput);
+            }
+            
+            // Hapus marker GPS jika ada
+            if (window.__modalGpsMarker && map.hasLayer(window.__modalGpsMarker)) {
+                map.removeLayer(window.__modalGpsMarker);
+                window.__modalGpsMarker = null;
+            }
+            
+            // Update marker default
+            if (window.__formLaporanMarker && map.hasLayer(window.__formLaporanMarker)) {
+                window.__formLaporanMarker.setOpacity(1);
+                window.__formLaporanMarker.setLatLng([lat, lng]);
+                window.__formLaporanMarker.bindPopup(`
+                    <div style="max-width: 200px;">
+                        <strong>📍 Lokasi Dipilih</strong><br>
+                        <small>
+                            Latitude: ${lat.toFixed(6)}<br>
+                            Longitude: ${lng.toFixed(6)}<br>
+                            <em>Lokasi dipilih manual di peta</em>
+                        </small>
+                    </div>
+                `).openPopup();
+            }
+            
+            // Reset GPS flag
+            window.locationFromGPS = false;
+            updateModalGPSStatus('manual', '📍 Lokasi dipilih manual');
+            
+            showToast("Lokasi dipilih ${lat.toFixed(6)}, ${lng.toFixed(6)}", { type: "info" });
+        });
+        
+        // Refresh peta setelah modal terbuka
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+        
+    } catch (error) {
+        console.error("Error inisialisasi peta:", error);
+        showToast("Gagal memuat peta lokasi", { type: "error" });
+    }
+}
+
+function setupModalEventListeners() {
+    // Event listener untuk tombol GPS
+    const btnGetLocation = document.getElementById('modalGetLocation');
+    if (btnGetLocation) {
+        btnGetLocation.addEventListener('click', getCurrentLocationForModal);
+    }
+    
+    // Event listener untuk tombol Reset
+    const btnResetMap = document.getElementById('modalResetMap');
+    if (btnResetMap) {
+        btnResetMap.addEventListener('click', resetModalMapToDefault);
+    }
+    
+    // Event listener untuk tombol Pilih Lokasi di Peta
+    const btnPilihLokasiPeta = document.getElementById('modalPilihLokasiPeta');
+    if (btnPilihLokasiPeta) {
+        btnPilihLokasiPeta.addEventListener('click', function() {
+            showToast("Klik pada peta untuk memilih lokasi", { type: "info" });
+            if (window.__formLaporanMap) {
+                window.__formLaporanMap.invalidateSize();
+            }
+        });
+    }
+    
+    // Event listener untuk preview gambar
+    const fotoInput = document.getElementById('modalFoto');
+    if (fotoInput) {
+        fotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('modalPreviewContainer');
+            const imagePreview = document.getElementById('modalImagePreview');
+            
+            // Clear previous validation
+            this.classList.remove('is-invalid', 'is-valid');
+            
+            if (file) {
+                // Validasi ukuran file (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    this.classList.add('is-invalid');
+                    this.setCustomValidity('Ukuran file maksimal 5MB');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validasi tipe file
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!validTypes.includes(file.type)) {
+                    this.classList.add('is-invalid');
+                    this.setCustomValidity('Format file harus JPG, JPEG, atau PNG');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // File valid
+                this.classList.add('is-valid');
+                this.setCustomValidity('');
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                this.classList.add('is-invalid');
+                this.setCustomValidity('Mohon unggah foto bukti');
+                previewContainer.style.display = 'none';
+            }
+        });
+    }
+}
+
+// Fungsi untuk setup Bootstrap validation
+function setupBootstrapValidation() {
+    const form = document.getElementById('swalLaporanForm');
+    if (!form) return;
+    
+    // Real-time validation untuk semua required fields
+    const fields = form.querySelectorAll('input[required], textarea[required], select[required]');
+    
+    fields.forEach(field => {
+        // Event listener untuk real-time validation
+        field.addEventListener('input', function() {
+            validateBootstrapField(this);
+        });
+        
+        field.addEventListener('blur', function() {
+            validateBootstrapField(this);
+        });
+    });
+    
+    // Event listener untuk form submission
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        form.classList.add('was-validated');
+    }, false);
+}
+
+// Fungsi untuk validasi field Bootstrap
+function validateBootstrapField(field) {
+    if (!field) return;
+    
+    // Clear previous validation
+    field.classList.remove('is-valid', 'is-invalid');
+    
+    if (field.checkValidity()) {
+        field.classList.add('is-valid');
+    } else {
+        field.classList.add('is-invalid');
+    }
+}
+
+// Fungsi untuk menampilkan pesan di form (versi Bootstrap)
+function showSweetAlertBootstrapMessage(message, type = "info") {
+    // Buat temporary message dengan Bootstrap styling
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `alert alert-${type === "error" ? "danger" : type === "success" ? "success" : "info"} alert-dismissible fade show mt-2`;
+    messageDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Tempatkan sebelum form
+    const form = document.getElementById('swalLaporanForm');
+    if (form) {
+        form.parentNode.insertBefore(messageDiv, form);
+        
+        // Auto-remove setelah 5 detik
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
+            }
+        }, 5000);
+    }
+}
+
+/**
+ * Ambil lokasi saat ini menggunakan GPS
+ */
+function getCurrentLocationForModal() {
+    if (isGettingLocation) return;
+    
+    console.log("📍 GPS button clicked - using REAL GPS");
+    isGettingLocation = true;
+    
+    const btnGetLocation = document.getElementById("modalGetLocation");
+    if (!btnGetLocation) {
+        console.error("GPS button not found!");
+        isGettingLocation = false;
+        return;
+    }
+    
+    if (!navigator.geolocation) {
+        showToast("Browser tidak mendukung GPS", { type: "error" });
+        isGettingLocation = false;
+        return;
+    }
+    
+    // UI loading
+    btnGetLocation.disabled = true;
+    btnGetLocation.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengambil...';
+    updateModalGPSStatus("loading", "Mendapatkan lokasi GPS...");
+    
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                const accuracy = Math.round(position.coords.accuracy);
+                
+                console.log("GPS success:", { latitude, longitude, accuracy });
+                
+                // Update input form
+                const latInput = document.getElementById('modalLatitude');
+                const lngInput = document.getElementById('modalLongitude');
+                
+                if (latInput && lngInput) {
+                    latInput.value = latitude.toFixed(7);
+                    lngInput.value = longitude.toFixed(7);
+                    validateModalField(latInput);
+                    validateModalField(lngInput);
+                }
+                
+                // Update peta
+                if (window.__formLaporanMap) {
+                    const map = window.__formLaporanMap;
+                    
+                    // Hapus marker GPS lama
+                    if (window.__modalGpsMarker && map.hasLayer(window.__modalGpsMarker)) {
+                        map.removeLayer(window.__modalGpsMarker);
+                    }
+                    
+                    // Buat marker GPS baru
+                    window.__modalGpsMarker = L.marker([latitude, longitude], {
+                        icon: L.icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        }),
+                        title: "Lokasi Saya (GPS)",
+                        draggable: false,
+                        zIndexOffset: 1000
+                    }).addTo(map);
+                    
+                    window.__modalGpsMarker.bindPopup(`
+                        <div style="max-width: 240px;">
+                            <strong style="color:#2e7d32;">📍 LOKASI SAYA</strong><br>
+                            <small>
+                                <b>Latitude:</b> ${latitude.toFixed(6)}<br>
+                                <b>Longitude:</b> ${longitude.toFixed(6)}<br>
+                                <b>Akurasi:</b> ±${accuracy} meter
+                            </small>
+                        </div>
+                    `).openPopup();
+                    
+                    // Redupkan marker default jika ada
+                    if (window.__formLaporanMarker && map.hasLayer(window.__formLaporanMarker)) {
+                        window.__formLaporanMarker.setOpacity(0.3);
+                    }
+                    
+                    // Zoom ke lokasi
+                    map.setView([latitude, longitude], 17);
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+                
+                // Update status
+                window.locationFromGPS = true;
+                updateModalGPSStatus("success", `✅ Lokasi ditemukan! Akurasi: ±${accuracy}m`);
+                
+                showModalMessage(`
+                    <div style="background:#e8f5e9;padding:10px;border-radius:6px;border-left:4px solid #4CAF50;">
+                        <strong style="color:#2e7d32;">✅ Lokasi berhasil diambil</strong><br>
+                        <small>
+                            Latitude: <b>${latitude.toFixed(6)}</b><br>
+                            Longitude: <b>${longitude.toFixed(6)}</b><br>
+                            Akurasi: ±${accuracy} meter
+                        </small>
+                    </div>
+                `, "success");
+                
+            } catch (error) {
+                console.error("Error in GPS success handler:", error);
+                updateModalGPSStatus("error", "❌ Error memproses lokasi");
+            } finally {
+                // Reset tombol
+                btnGetLocation.disabled = false;
+                btnGetLocation.innerHTML = '<span style="font-size:16px;">📍</span> GPS Saya';
+                isGettingLocation = false;
+            }
+        },
+        (error) => {
+            console.error("GPS error:", error);
+            
+            let message = "Gagal mengambil lokasi GPS";
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "❌ Izin lokasi ditolak";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "❌ Lokasi tidak tersedia";
+                    break;
+                case error.TIMEOUT:
+                    message = "❌ Permintaan lokasi timeout";
+                    break;
+            }
+            
+            updateModalGPSStatus("error", message);
+            showToast(message, { type: "error" });
+            
+            // Reset tombol
+            btnGetLocation.disabled = false;
+            btnGetLocation.innerHTML = '<span style="font-size:16px;">📍</span> GPS Saya';
+            isGettingLocation = false;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        }
+    );
+}
+
+function resetModalMapToDefault() {
+    if (window.__formLaporanMap) {
+        const map = window.__formLaporanMap;
+        const defaultLat = -10.1935921;
+        const defaultLng = 123.6149376;
+        
+        // Kembalikan ke view default
+        map.setView([defaultLat, defaultLng], 13);
+        
+        // Hapus marker GPS jika ada
+        if (window.__modalGpsMarker && map.hasLayer(window.__modalGpsMarker)) {
+            map.removeLayer(window.__modalGpsMarker);
+            window.__modalGpsMarker = null;
+        }
+        
+        // Tampilkan marker default jika ada
+        if (window.__formLaporanMarker && map.hasLayer(window.__formLaporanMarker)) {
+            window.__formLaporanMarker.setOpacity(1);
+            window.__formLaporanMarker.setLatLng([defaultLat, defaultLng]);
+            window.__formLaporanMarker.bindPopup(`
+                <div style="max-width: 200px;">
+                    <strong>📍 Lokasi Default</strong><br>
+                    <small>
+                        Latitude: ${defaultLat}<br>
+                        Longitude: ${defaultLng}<br>
+                        <em>Klik peta atau gunakan GPS untuk memilih lokasi lain</em>
+                    </small>
+                </div>
+            `).openPopup();
+        }
+        
+        // Update input
+        const latInput = document.getElementById('modalLatitude');
+        const lngInput = document.getElementById('modalLongitude');
+        
+        if (latInput && lngInput) {
+            latInput.value = defaultLat;
+            lngInput.value = defaultLng;
+            validateModalField(latInput);
+            validateModalField(lngInput);
+        }
+        
+        window.locationFromGPS = false;
+        updateModalGPSStatus('manual', '📍 Lokasi default');
+        
+        showModalMessage("📍 Peta direset ke lokasi default Kupang", "info");
+        
+        // Refresh peta
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+    }
+}
+
+function updateModalGPSStatus(status, message = '') {
+    const gpsStatusDiv = document.getElementById('modalGpsStatus');
+    if (!gpsStatusDiv) return;
+    
+    let statusHTML = '';
+    
+    switch (status) {
+        case 'loading':
+            statusHTML = `
+                <div class="alert alert-primary d-flex align-items-center py-2" role="alert">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            break;
+            
+        case 'success':
+            statusHTML = `
+                <div class="alert alert-success d-flex align-items-center py-2" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            break;
+            
+        case 'error':
+            statusHTML = `
+                <div class="alert alert-danger d-flex align-items-center py-2" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            break;
+            
+        case 'manual':
+            statusHTML = `
+                <div class="alert alert-info d-flex align-items-center py-2" role="alert">
+                    <i class="bi bi-geo-alt me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            break;
+    }
+    
+    gpsStatusDiv.innerHTML = statusHTML;
+}
+
+function showModalMessage(message, type = "info") {
+    // Cari atau buat container untuk pesan
+    let messageDiv = document.getElementById('modalMessageContainer');
+    
+    if (!messageDiv) {
+        messageDiv = document.createElement('div');
+        messageDiv.id = 'modalMessageContainer';
+        const form = document.getElementById('modalLaporanForm');
+        if (form) {
+            form.parentNode.insertBefore(messageDiv, form);
+        }
+    }
+    
+    // Hapus pesan lama
+    messageDiv.innerHTML = '';
+    
+    // Buat alert baru
+    const alertClass = type === 'error' ? 'alert-danger' : 
+                      type === 'success' ? 'alert-success' : 
+                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert ${alertClass} alert-dismissible fade show mt-2`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    messageDiv.appendChild(alertDiv);
+    
+    // Auto-remove setelah 5 detik untuk pesan info
+    if (type === 'info') {
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+}
+
+
+// Tambahkan fungsi untuk validasi lokasi
+function validateAndForceLocation() {
+    const latInput = document.getElementById('swalLatitude');
+    const lngInput = document.getElementById('swalLongitude');
+    
+    if (latInput && lngInput) {
+        // Jika lokasi dari GPS, PASTIKAN nilainya adalah lokasi Anda
+        if (window.locationFromGPS) {
+            const YOUR_FIXED_LATITUDE = -10.1711872;
+            const YOUR_FIXED_LONGITUDE = 123.6149376;
+            
+            latInput.value = YOUR_FIXED_LATITUDE;
+            lngInput.value = YOUR_FIXED_LONGITUDE;
+            console.log("Forced location on validation");
+        }
+    }
+}
+
+/**
+ * Reset peta ke lokasi default
+ */
+function resetMapToDefault() {
+    console.log("Reset map button clicked"); // Debug log
+    
+    if (window.__formLaporanMap) {
+        const map = window.__formLaporanMap;
+        const defaultLat = -10.1935921;
+        const defaultLng = 123.6149376;
+        
+        // Kembalikan ke view default
+        map.setView([defaultLat, defaultLng], 13);
+        
+        // Hapus marker GPS jika ada
+        if (window.gpsMarker && map.hasLayer(window.gpsMarker)) {
+            map.removeLayer(window.gpsMarker);
+            window.gpsMarker = null;
+        }
+        
+        // Tampilkan marker default jika ada
+        if (window.__formLaporanMarker && map.hasLayer(window.__formLaporanMarker)) {
+            window.__formLaporanMarker.setOpacity(1);
+            window.__formLaporanMarker.setLatLng([defaultLat, defaultLng]);
+            
+            // Open popup marker default
+            window.__formLaporanMarker.bindPopup(`
+                <div style="max-width: 200px;">
+                    <strong>📍 Lokasi Default</strong><br>
+                    <small>
+                        Latitude: ${defaultLat}<br>
+                        Longitude: ${defaultLng}<br>
+                        <em>Klik peta atau gunakan GPS untuk memilih lokasi lain</em>
+                    </small>
+                </div>
+            `).openPopup();
+        }
+        
+        // Update input
+        const latInput = document.getElementById('swalLatitude');
+        const lngInput = document.getElementById('swalLongitude');
+        
+        if (latInput && lngInput) {
+            latInput.value = defaultLat;
+            lngInput.value = defaultLng;
+        }
+        
+        window.locationFromGPS = false;
+        updateGPSStatus('manual');
+        
+        showMessageInForm("📍 Peta direset ke lokasi default Kupang", "info");
+        
+        // Refresh peta
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+    } else {
+        console.error("Map not found!");
+        showMessageInForm("❌ Peta tidak ditemukan. Silakan refresh halaman.", "error");
+    }
+}
+
+/**
+ * Update status GPS di UI
+ */
+function updateGPSStatus(status, customMessage = null) {
+    const loadingEl = document.getElementById('gpsLoading');
+    const successEl = document.getElementById('gpsSuccess');
+    const errorEl = document.getElementById('gpsError');
+    
+    if (!loadingEl || !successEl || !errorEl) return;
+    
+    // Reset semua status
+    loadingEl.style.display = 'none';
+    successEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    
+    // Tampilkan status yang sesuai
+    switch (status) {
+        case 'loading':
+            loadingEl.style.display = 'block';
+            break;
+            
+        case 'success':
+            if (customMessage) {
+                successEl.innerHTML = `<span>${customMessage}</span>`;
+            } else {
+                successEl.innerHTML = '<span>✅ Lokasi GPS ditemukan!</span>';
+            }
+            successEl.style.color = '#4CAF50'; // Hijau untuk sukses
+            successEl.style.display = 'block';
+            break;
+            
+        case 'error':
+            errorEl.style.display = 'block';
+            break;
+            
+        case 'manual':
+            // Status manual (klik peta)
+            successEl.innerHTML = '<span>📍 Lokasi dipilih manual di peta</span>';
+            successEl.style.color = '#2196F3'; // Biru untuk manual
+            successEl.style.display = 'block';
+            break;
+    }
+}
+
+/**
+ * Tampilkan pesan dalam form
+ */
+function showMessageInForm(message, type = "info") {
+    const messageDiv = document.getElementById("formMessage");
+    if (!messageDiv) return;
+    
+    messageDiv.innerHTML = "";
+    messageDiv.style.padding = "10px 15px";
+    messageDiv.style.borderRadius = "6px";
+    messageDiv.style.marginTop = "10px";
+    messageDiv.style.fontSize = "14px";
+    
+    if (type === "error") {
+        messageDiv.style.backgroundColor = "#ffebee";
+        messageDiv.style.color = "#c62828";
+        messageDiv.style.border = "1px solid #ffcdd2";
+    } else if (type === "success") {
+        messageDiv.style.backgroundColor = "#e8f5e9";
+        messageDiv.style.color = "#2e7d32";
+        messageDiv.style.border = "1px solid #c8e6c9";
+    } else if (type === "warning") {
+        messageDiv.style.backgroundColor = "#fff8e1";
+        messageDiv.style.color = "#856404";
+        messageDiv.style.border = "1px solid #ffeaa7";
+    } else {
+        messageDiv.style.backgroundColor = "#e3f2fd";
+        messageDiv.style.color = "#1565c0";
+        messageDiv.style.border = "1px solid #bbdefb";
+    }
+    
+    messageDiv.innerHTML = message;
+    
+    // Auto-hide untuk pesan info
+    if (type === "info") {
+        setTimeout(() => {
+            if (messageDiv.textContent.includes(message.substring(0, 50))) {
+                messageDiv.innerHTML = "";
+                // ✅ PERBAIKAN: Jangan reset style ke string kosong
+                messageDiv.style.padding = "";
+                messageDiv.style.borderRadius = "";
+                messageDiv.style.marginTop = "";
+                messageDiv.style.fontSize = "";
+                messageDiv.style.backgroundColor = "";
+                messageDiv.style.color = "";
+                messageDiv.style.border = "";
+            }
+        }, 5000);
+    }
+}
+
+// Fungsi untuk menampilkan peta pemilihan lokasi
+function showMapPicker() {
+    const mapHTML = `
+        <div style="margin-bottom: 15px;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Klik pada peta untuk memilih lokasi</p>
+            <div id="pickerMap" style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 6px;"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Latitude</label>
+                <input type="text" id="pickerLatitude" class="swal2-input" placeholder="-10.1935921" readonly>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Longitude</label>
+                <input type="text" id="pickerLongitude" class="swal2-input" placeholder="123.6149376" readonly>
             </div>
         </div>
     `;
-
-    // Initialize map
-    loadLeaflet(() => {
-        initMapForm("mapForm", "latitude", "longitude", -10.1935921, 123.6149376, 13);
-    });
-
-    // Image preview
-    document.getElementById("foto").onchange = function(e) {
-        const file = e.target.files[0];
-        const previewContainer = document.getElementById("previewContainer");
-        const imagePreview = document.getElementById("imagePreview");
-        
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                showMessage("Ukuran file maksimal 5MB", "error", document.getElementById("formMessage"));
-                e.target.value = '';
-                return;
+    
+    Swal.fire({
+        title: '📍 Pilih Lokasi',
+        html: mapHTML,
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'Gunakan Lokasi Ini',
+        cancelButtonText: 'Batal',
+        didOpen: () => {
+            // Inisialisasi peta
+            loadLeaflet(() => {
+                const map = initMap("pickerMap", -10.1935921, 123.6149376, 13);
+                
+                // Tambahkan marker yang bisa dipindah
+                let marker = L.marker([-10.1935921, 123.6149376], {
+                    draggable: true
+                }).addTo(map);
+                
+                // Event untuk klik peta
+                map.on('click', function(e) {
+                    const { lat, lng } = e.latlng;
+                    marker.setLatLng([lat, lng]);
+                    document.getElementById('pickerLatitude').value = lat.toFixed(7);
+                    document.getElementById('pickerLongitude').value = lng.toFixed(7);
+                });
+                
+                // Event untuk drag marker
+                marker.on('dragend', function(e) {
+                    const position = marker.getLatLng();
+                    document.getElementById('pickerLatitude').value = position.lat.toFixed(7);
+                    document.getElementById('pickerLongitude').value = position.lng.toFixed(7);
+                });
+                
+                // Set initial values
+                document.getElementById('pickerLatitude').value = -10.1935921;
+                document.getElementById('pickerLongitude').value = 123.6149376;
+            });
+            // Debug: Cek apakah tombol ditemukan
+            setTimeout(() => {
+                console.log("GPS button exists:", !!document.getElementById('btnGetLocation'));
+                console.log("Reset button exists:", !!document.getElementById('btnResetMap'));
+                console.log("Peta button exists:", !!document.getElementById('btnPilihLokasiPeta'));
+            }, 100);
+        },
+        preConfirm: () => {
+            const lat = document.getElementById('pickerLatitude').value;
+            const lng = document.getElementById('pickerLongitude').value;
+            
+            if (!lat || !lng) {
+                Swal.showValidationMessage('Silakan pilih lokasi di peta');
+                return false;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                imagePreview.src = event.target.result;
-                previewContainer.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        } else {
-            previewContainer.style.display = 'none';
+            return { latitude: lat, longitude: lng };
         }
-    };
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Simpan ke variabel global
+            selectedLocation.latitude = result.value.latitude;
+            selectedLocation.longitude = result.value.longitude;
 
-    // Form submission
-    document.getElementById("formLaporan").onsubmit = async (e) => {
-        e.preventDefault();
-        await submitLaporanForm();
-    };
+            Swal.fire({
+                icon: 'success',
+                title: 'Lokasi Dipilih',
+                text: `Lat: ${result.value.latitude}, Lng: ${result.value.longitude}`,
+                timer: 1200,
+                showConfirmButton: false
+            });
+
+            showCreateLaporanForm();
+        }
+    });
 }
 
-async function submitLaporanForm() {
-    const btnSubmit = document.getElementById("btnSubmit");
-    const formMessage = document.getElementById("formMessage");
+// Fungsi untuk submit laporan dengan SweetAlert
+async function submitLaporan(formData) {
+    // Tampilkan loading (Anda bisa buat fungsi loading di modal.js)
+    showToast("Mengirim laporan...", "info");
     
     if (!currentUser) {
         const user = await authGuard();
         if (!user) {
-            showMessage("Session expired. Please login again.", "error", formMessage);
-            return;
+            showModalMessage("Session expired, silakan login kembali", "error");
+            return false;
         }
         currentUser = user;
     }
-
-    // Validate form
-    const alamat = document.getElementById("alamat").value.trim();
-    const deskripsi = document.getElementById("deskripsi").value.trim();
-    const latitude = parseFloat(document.getElementById("latitude").value);
-    const longitude = parseFloat(document.getElementById("longitude").value);
-
-    if (!alamat || !deskripsi || isNaN(latitude) || isNaN(longitude)) {
-        showMessage("Harap lengkapi semua field yang wajib diisi", "error", formMessage);
-        return;
-    }
-
-    // Prepare payload sesuai model Django
-    const payload = {
-        nama: currentUser.username,
-        alamat: alamat,
-        deskripsi: deskripsi,
-        latitude: latitude,
-        longitude: longitude,
-        tanggal_lapor: new Date().toISOString().split("T")[0],
-        idUser: parseInt(currentUser.id), // Pastikan integer
-        status: "pending" // Default dari model
-    };
-
-    console.log("Submitting laporan payload:", payload);
-
-    // Show loading
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = "⏳ Mengirim...";
-    showMessage("Mengirim laporan...", "info", formMessage);
-
+    
     try {
+        // Prepare payload
+        const payload = {
+            nama: currentUser.username,
+            alamat: formData.alamat,
+            deskripsi: formData.deskripsi,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+            tanggal_lapor: new Date().toISOString().split("T")[0],
+            idUser: parseInt(currentUser.id),
+            status: "pending"
+        };
+        
+        // Kirim laporan
         const response = await fetch(API.laporanSampah, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload)
         });
-
-        console.log("Response status:", response.status);
-
+        
         let data;
         try {
             data = await response.json();
-            console.log("Response data:", data);
         } catch (jsonError) {
-            const text = await response.text();
-            console.error("JSON parse error:", jsonError);
-            console.log("Raw response:", text.substring(0, 200));
             throw new Error(`Invalid response from server: ${response.status}`);
         }
-
+        
         if (!response.ok) {
             let errorDetail = "";
             if (data && typeof data === "object") {
@@ -890,35 +1875,29 @@ async function submitLaporanForm() {
             }
             throw new Error(`HTTP ${response.status}\n${errorDetail}`);
         }
-
-        // Success
-        showMessage("✅ Laporan berhasil dikirim! Status: PENDING", "success", formMessage);
-        btnSubmit.innerHTML = "✅ Berhasil Dikirim";
         
-        // Jika ada foto, upload terpisah
-        const foto = document.getElementById("foto").files[0];
-        if (foto) {
-            showMessage("Mengupload foto...", "info", formMessage);
-            await uploadFoto(data.idLaporan || data.id, foto);
+        // Jika ada foto, upload
+        let fotoUploaded = false;
+        if (formData.foto) {
+            showModalMessage("Mengupload foto...", "info");
+            fotoUploaded = await uploadFoto(data.idLaporan || data.id, formData.foto);
         }
         
+        // Success - tampilkan pesan sukses sebelum modal ditutup
+        showToast("Laporan berhasil dikirim", "success");
+        alert("Laporan berhasil dikirim");
+        
+        // Tunggu sebentar agar pesan terlihat, lalu refresh halaman
         setTimeout(() => {
-            document.getElementById("formModal").style.display = 'none';
             laporanPage();
         }, 2000);
-
+        
+        return true;
+        
     } catch (error) {
         console.error("Error submitting laporan:", error);
-        
-        let errorMessage = "❌ Gagal mengirim laporan";
-        if (error.message.includes("400")) {
-            errorMessage += "\nFormat data tidak sesuai dengan backend.";
-        }
-        
-        showMessage(`${errorMessage}\n${error.message.substring(0, 100)}`, "error", formMessage);
-        
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = "📤 Kirim Laporan";
+        showToast("Gagal mengirim laporan", "error");
+        return false;
     }
 }
 
@@ -989,43 +1968,43 @@ function formatDate(dateString) {
     }
 }
 
-// Global function untuk peta
-window.showLaporanOnMap = function(latitude, longitude) {
-    const modal = document.getElementById("formModal") || document.createElement('div');
-    modal.id = 'formModal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div style="background: white; width: 90%; max-width: 500px; border-radius: 10px; padding: 0;">
-                <div style="background: #4CAF50; color: white; padding: 15px 20px; border-radius: 10px 10px 0 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 18px;">📍 Lokasi Laporan</h3>
-                        <button onclick="document.getElementById('formModal').style.display='none'" 
-                                style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0;">
-                            ×
-                        </button>
-                    </div>
+// Ganti fungsi showLaporanOnMap untuk menggunakan modal
+window.showLaporanOnMap = function(latitude, longitude, deskripsi = '') {
+    const mapHTML = `
+        <div style="margin-bottom: 15px;">
+            ${deskripsi ? `
+                <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 14px; color: #333;">${deskripsi}</p>
                 </div>
-                <div style="padding: 20px;">
-                    <div id="detailMap" style="height: 300px; border-radius: 6px; overflow: hidden;"></div>
-                    <div style="margin-top: 15px; text-align: center;">
-                        <button onclick="document.getElementById('formModal').style.display='none'"
-                                style="background: #757575; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-                            Tutup
-                        </button>
-                    </div>
-                </div>
-            </div>
+            ` : ''}
+            <div id="detailMap" style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 6px;"></div>
         </div>
     `;
     
-    document.body.appendChild(modal);
+    // Gunakan modal custom untuk menampilkan peta
+    showModal(
+        '📍 Lokasi Laporan',
+        mapHTML,
+        null, // Tidak ada tombol simpan
+        () => {
+            // Cleanup saat modal ditutup
+        }
+    );
     
-    loadLeaflet(() => {
-        const map = initMap("detailMap", latitude, longitude, 15);
-        addMarker(map, latitude, longitude, "Lokasi Laporan");
-    });
+    // Inisialisasi peta setelah modal terbuka
+    setTimeout(() => {
+        loadLeaflet(() => {
+            const map = initMap("detailMap", latitude, longitude, 15);
+            addMarker(map, latitude, longitude, deskripsi || "Lokasi Laporan");
+            
+            // Refresh peta
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 200);
+        });
+    }, 100);
 };
 
 window.applyLaporanFilters = applyLaporanFilters;
 window.resetLaporanFilters = resetLaporanFilters;
+window.renderLaporanPage = renderLaporanPage;

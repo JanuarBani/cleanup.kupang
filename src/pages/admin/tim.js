@@ -1,144 +1,255 @@
 import { API, getAuthHeaders, fetchAPI } from "../../api.js";
 import { showModal, showConfirmModal } from "../../utils/modal.js";
+import { showToast } from "../../utils/toast.js";
+
+// ===== FUNGSI VALIDASI FORM =====
+function setupFormValidation() {
+  // Cegah submit default
+  const forms = document.querySelectorAll('.needs-validation');
+  
+  Array.from(forms).forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
+      form.classList.add('was-validated');
+    }, false);
+  });
+  
+  // Setup real-time validation
+  setupRealTimeValidation();
+}
+
+function setupRealTimeValidation() {
+  const forms = document.querySelectorAll('.needs-validation');
+  
+  forms.forEach(form => {
+    const inputs = form.querySelectorAll('input, select, textarea');
+    
+    inputs.forEach(input => {
+      input.addEventListener('blur', () => {
+        validateField(input);
+      });
+      
+      input.addEventListener('input', () => {
+        if (input.classList.contains('is-invalid')) {
+          validateField(input);
+        }
+      });
+    });
+  });
+}
+
+function validateField(field) {
+  if (field.checkValidity()) {
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+  } else {
+    field.classList.remove('is-valid');
+    field.classList.add('is-invalid');
+  }
+}
+
+function showFormToast(message, type = 'info') {
+  if (typeof showToast === 'function') {
+    showToast(message, type, 5000);
+  } else {
+    alert(`${type.toUpperCase()}: ${message}`);
+  }
+}
+
+function validateTimInput(namaTim, noWhatsapp) {
+  const errors = [];
+  
+  if (!namaTim || namaTim.trim().length < 3) {
+    errors.push("Nama tim wajib diisi dan minimal 3 karakter.");
+  }
+
+  if (!noWhatsapp) {
+    errors.push("No WhatsApp wajib diisi.");
+  } else {
+    if (!/^[0-9]+$/.test(noWhatsapp)) {
+      errors.push("No WhatsApp hanya boleh berisi angka.");
+    }
+
+    if (noWhatsapp.length < 9 || noWhatsapp.length > 12) {
+      errors.push("No WhatsApp harus 9–12 digit.");
+    }
+  }
+
+  return errors.length > 0 ? errors.join(" ") : null;
+}
+
+function validatePhoneNumber(noWhatsapp) {
+  if (!noWhatsapp) {
+    return { 
+      valid: false, 
+      message: 'Nomor WhatsApp wajib diisi',
+      cleanNoWA: ''
+    };
+  }
+  
+  // Hapus semua karakter non-digit
+  const cleanNoWA = noWhatsapp.toString().replace(/\D/g, '');
+  
+  // Validasi panjang nomor (9-12 digit untuk berbagai format)
+  if (cleanNoWA.length < 9 ) {
+    return { 
+      valid: false, 
+      message: 'Nomor WhatsApp terlalu pendek (minimal 9 digit)',
+      cleanNoWA: cleanNoWA
+    };
+  }
+  
+  if (cleanNoWA.length > 12) {
+    return { 
+      valid: false, 
+      message: 'Nomor WhatsApp terlalu panjang (maksimal 12 digit)',
+      cleanNoWA: cleanNoWA
+    };
+  }
+  
+  return { valid: true, cleanNoWA: cleanNoWA };
+}
 
 export async function timAdminPage() {
   const mainContent = document.getElementById("mainContent");
+  
   if (!document.getElementById('modalContainer')) {
     const modalContainer = document.createElement('div');
     modalContainer.id = 'modalContainer';
     document.body.appendChild(modalContainer);
   }
+  
   mainContent.innerHTML = `
-        <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>Manajemen Tim Pengangkut</h2>
-                <button id="addTimBtn" style="padding: 8px 16px; background: #28a745; color: white;">+ Tambah Tim</button>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="searchTim" placeholder="Cari tim..." style="padding: 8px; width: 300px;">
-            </div>
-            
-            <div id="timTableContainer">
-                <p>Loading data...</p>
-            </div>
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success">
+          <i class="bi bi-people-fill me-2"></i>Manajemen Tim Pengangkut
+        </h2>
+      </div>
+      
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-success text-white border-success">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="searchTim" class="form-control border-success" 
+                   placeholder="Cari nama tim...">
+          </div>
         </div>
-    `;
+      </div>
+      
+      <div class="card border-success shadow-sm">
+        <div class="card-header bg-success bg-opacity-10 border-success">
+          <h5 class="mb-0 text-success">
+            <i class="bi bi-list-ul me-2"></i>Daftar Tim Saya
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="timTableContainer">
+            <div class="text-center py-5">
+              <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted">Memuat data tim...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 
-  document.getElementById("addTimBtn").onclick = () => showAddTimForm();
   document.getElementById("searchTim").oninput = loadTim;
 
   loadTim();
 }
 
 async function loadTim() {
-  const search = document.getElementById("searchTim").value;
+  const search = document.getElementById("searchTim")?.value || "";
 
   try {
     const response = await fetchAPI(API.timPengangkut, {
       headers: getAuthHeaders(),
     });
 
-    const timList = response.data || response;
+    const timList = response.data || response || [];
+    
+    // Filter berdasarkan pencarian
     const filteredTim = timList.filter((tim) =>
-      tim.namaTim.toLowerCase().includes(search.toLowerCase())
+      tim.namaTim.toLowerCase().includes(search.toLowerCase()) ||
+      (tim.user_username && tim.user_username.toLowerCase().includes(search.toLowerCase()))
     );
 
     renderTimTable(filteredTim);
   } catch (error) {
-    document.getElementById(
-      "timTableContainer"
-    ).innerHTML = `<p style="color: red;">Error loading tim: ${error.message}</p>`;
+    console.error("Error loading tim:", error);
+    document.getElementById("timTableContainer").innerHTML = `
+      <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Error:</strong> Gagal memuat data tim: ${error.message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>`;
   }
 }
 
 function renderTimTable(timList) {
   const container = document.getElementById("timTableContainer");
 
-  if (!timList || timList.length === 0) {
-    container.innerHTML = `<p>Tidak ada data tim</p>`;
-    return;
-  }
-
   const tableHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background: #f2f2f2;">
-                    <th style="padding: 10px; border: 1px solid #ddd;">ID</th>
-                    <th style="padding: 10px; border: 1px solid #ddd;">Nama Tim</th>
-                    <th style="padding: 10px; border: 1px solid #ddd;">No WhatsApp</th>
-                    <th style="padding: 10px; border: 1px solid #ddd;">Jumlah Anggota</th>
-                    <th style="padding: 10px; border: 1px solid #ddd;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${timList
-                  .map(
-                    (tim) => `
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${
-                          tim.idTim || tim.id
-                        }</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${
-                          tim.namaTim
-                        }</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${
-                          tim.noWhatsapp
-                        }</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${
-                          tim.jumlah_anggota || 0
-                        }</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">
-                            <button onclick="editTim(${
-                              tim.idTim || tim.id
-                            })" style="padding: 4px 8px; margin-right: 5px; background: #ffc107;">Edit</button>
-                            <button onclick="deleteTim(${
-                              tim.idTim || tim.id
-                            })" style="padding: 4px 8px; background: #dc3545; color: white;">Hapus</button>
-                        </td>
-                    </tr>
-                `
-                  )
-                  .join("")}
-            </tbody>
-        </table>
-    `;
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-success">
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Nama Tim</th>
+            <th scope="col">No WhatsApp</th>
+            <th scope="col" class="text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${timList.map((tim) => `
+            <tr>
+              <td class="align-middle">
+                <span class="badge bg-secondary">${tim.idTim || tim.id}</span>
+              </td>
+              <td class="align-middle fw-bold">
+                <div class="d-flex align-items-center">
+                  <div class="bg-success bg-opacity-10 p-2 rounded me-2">
+                    <i class="bi bi-people-fill text-success"></i>
+                  </div>
+                  ${tim.namaTim}
+                </div>
+              </td>
+              <td class="align-middle">
+                <a href="https://wa.me/${tim.noWhatsapp}" target="_blank" 
+                   class="badge bg-success text-decoration-none">
+                  <i class="bi bi-whatsapp me-1"></i> ${tim.noWhatsapp}
+                </a>
+              </td>
+              <td class="text-center">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button onclick="window.editTim(${tim.idTim || tim.id})" 
+                          class="btn btn-outline-warning" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button onclick="window.deleteTim(${tim.idTim || tim.id})" 
+                          class="btn btn-outline-danger" title="Hapus">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 
   container.innerHTML = tableHTML;
-
-  window.editTim = editTim;
-  window.deleteTim = deleteTim;
-}
-
-function showAddTimForm() {
-  const formHTML = `
-        <form id="timForm">
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Nama Tim *</label>
-                <input type="text" id="namaTim" required style="width: 100%; padding: 8px;">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">No WhatsApp *</label>
-                <input type="text" id="noWhatsapp" required style="width: 100%; padding: 8px;" placeholder="08123456789">
-            </div>
-        </form>
-    `;
-
-  showModal("Tambah Tim Baru", formHTML, async () => {
-    const timData = {
-      namaTim: document.getElementById("namaTim").value,
-      noWhatsapp: document.getElementById("noWhatsapp").value,
-    };
-
-    await fetchAPI(API.timPengangkut, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(timData),
-    });
-
-    alert("Tim berhasil ditambahkan!");
-    loadTim();
-  });
 }
 
 async function editTim(timId) {
@@ -148,52 +259,210 @@ async function editTim(timId) {
     });
 
     const tim = response.data || response;
+    const originalNamaTim = tim.namaTim;
+    const originalNoWhatsapp = tim.noWhatsapp;
 
     const formHTML = `
-            <form id="editTimForm">
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px;">Nama Tim *</label>
-                    <input type="text" id="namaTim" value="${tim.namaTim}" required style="width: 100%; padding: 8px;">
-                </div>
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px;">No WhatsApp *</label>
-                    <input type="text" id="noWhatsapp" value="${tim.noWhatsapp}" required style="width: 100%; padding: 8px;">
-                </div>
-            </form>
-        `;
+      <div class="tim-form-container">
+        <form id="editTimForm" class="needs-validation" novalidate>
+          <div class="mb-4">
+            <label for="namaTim" class="form-label">
+              <i class="bi bi-card-text text-warning me-1"></i>Nama Tim *
+            </label>
+            <input type="text" class="form-control" 
+                   id="namaTim" 
+                   value="${tim.namaTim}" 
+                   placeholder="Contoh: Tim Pengangkut Utara"
+                   required
+                   minlength="3">
+            <div class="valid-feedback">
+              <i class="bi bi-check-circle-fill me-1"></i> Nama tim valid.
+            </div>
+            <div class="invalid-feedback">
+              <i class="bi bi-exclamation-circle-fill me-1"></i> Nama tim wajib diisi dan minimal 3 karakter.
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="noWhatsapp" class="form-label">
+              <i class="bi bi-whatsapp text-warning me-1"></i>No WhatsApp *
+            </label>
+            <div class="input-group">
+              <input type="tel"
+                     class="form-control" 
+                     id="noWhatsapp"
+                     maxlength = "12"
+                     value="${tim.noWhatsapp}"
+                     required
+                     placeholder="Contoh: 081234567890"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+            <div class="valid-feedback">
+              <i class="bi bi-check-circle-fill me-1"></i> Nomor WhatsApp valid.
+            </div>
+            <div class="invalid-feedback">
+              <i class="bi bi-exclamation-circle-fill me-1"></i> Masukkan nomor WhatsApp yang valid.
+            </div>
+            <small class="text-muted mt-1">
+              <i class="bi bi-info-circle me-1"></i> Format: 081234567890
+            </small>
+          </div>
+        </form>
+        
+        <!-- Error Message Area -->
+        <div id="formMessageEdit" class="mt-3"></div>
+      </div>
+    `;
 
-    showModal("Edit Tim", formHTML, async () => {
-      const timData = {
-        namaTim: document.getElementById("namaTim").value,
-        noWhatsapp: document.getElementById("noWhatsapp").value,
-      };
+    showModal(`Edit Tim: ${tim.namaTim}`, formHTML, async () => {
+      const form = document.getElementById('editTimForm');
+      
+      // Reset validation state
+      form.classList.remove('was-validated');
+      
+      // Check validity
+      if (!form.checkValidity()) {
+        // Add validation styles
+        form.classList.add('was-validated');
+        // Scroll ke field pertama yang invalid
+        const invalidField = form.querySelector(':invalid');
+        if (invalidField) {
+          invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          invalidField.focus();
+        }
+        return false;
+      }
 
-      await fetchAPI(`${API.timPengangkut}${timId}/`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(timData),
-      });
+      const namaTim = document.getElementById("namaTim").value.trim();
+      const noWhatsapp = document.getElementById("noWhatsapp").value.trim();
 
-      alert("Tim berhasil diupdate!");
-      loadTim();
-    });
+      // Validasi tambahan untuk nomor WhatsApp - PERUBAHAN: validasi yang lebih fleksibel
+      const phoneValidation = validatePhoneNumber(noWhatsapp);
+      if (!phoneValidation.valid) {
+        showFormToast(phoneValidation.message, "danger");
+        const whatsappInput = document.getElementById('noWhatsapp');
+        whatsappInput.classList.add('is-invalid');
+        whatsappInput.focus();
+        return false;
+      }
+
+      // Cek apakah ada perubahan
+      if (namaTim === originalNamaTim && noWhatsapp === originalNoWhatsapp) {
+        showFormToast("Tidak ada perubahan data yang dilakukan.", "info");
+        return false; // Jangan tutup modal
+      }
+
+      // Tampilkan loading state
+      showFormToast("Menyimpan perubahan data...", "info");
+
+      try {
+        await fetchAPI(`${API.timPengangkut}${timId}/`, {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ 
+            namaTim, 
+            noWhatsapp: phoneValidation.cleanNoWA
+          }),
+        });
+
+        // Tutup modal dan tampilkan toast sukses
+        setTimeout(() => {
+          showFormToast(`✅ Tim "${namaTim}" berhasil diperbarui`, "success");
+          loadTim();
+        }, 500);
+        
+        return true;
+      } catch (error) {
+        console.error("Error updating tim:", error);
+        
+        // Tampilkan error di dalam form
+        const formMessage = document.getElementById('formMessageEdit');
+        if (formMessage) {
+          formMessage.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Error:</strong> ${error.message || "Gagal memperbarui tim"}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          `;
+        }
+        
+        showFormToast(error.message || "Gagal memperbarui tim", "danger");
+        return false;
+      }
+    }, true, "modal-lg");
+
+    // Setup validation setelah modal ditampilkan
+    setTimeout(() => {
+      setupFormValidation();
+    }, 300);
+    
   } catch (error) {
-    alert("Error loading tim data: " + error.message);
+    console.error("Error loading tim data:", error);
+    showFormToast(`❌ Gagal memuat data tim: ${error.message}`, "danger");
   }
 }
 
 async function deleteTim(timId) {
-  showConfirmModal("Apakah Anda yakin ingin menghapus tim ini?", async () => {
-    try {
-      await fetchAPI(`${API.timPengangkut}${timId}/`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+  try {
+    // Ambil data tim terlebih dahulu untuk mendapatkan nama
+    const response = await fetchAPI(`${API.timPengangkut}${timId}/`, {
+      headers: getAuthHeaders(),
+    });
 
-      alert("Tim berhasil dihapus!");
-      loadTim();
-    } catch (error) {
-      alert("Error deleting tim: " + error.message);
-    }
-  });
+    const tim = response.data || response;
+
+    showConfirmModal(
+      `
+        <div class="text-center py-3">
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3"></i>
+          <h5 class="text-danger fw-bold">Hapus Tim</h5>
+          <p class="text-muted">Apakah Anda yakin ingin menghapus tim ini?</p>
+          <div class="alert alert-danger mt-3">
+            <div class="d-flex align-items-center">
+              <div class="bg-danger bg-opacity-10 p-3 rounded-circle me-3">
+                <i class="bi bi-people-fill text-danger fs-4"></i>
+              </div>
+              <div class="text-start">
+                <strong class="d-block">${tim.namaTim}</strong>
+                <small class="text-muted">
+                  <i class="bi bi-whatsapp me-1"></i>+62${tim.noWhatsapp} | 
+                  ID: ${tim.idTim || tim.id}
+                </small>
+              </div>
+            </div>
+          </div>
+          <small class="text-muted d-block mt-3">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Data yang telah dihapus tidak dapat dikembalikan.
+          </small>
+        </div>
+      `,
+      async () => {
+        try {
+          await fetchAPI(`${API.timPengangkut}${timId}/`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+
+          showFormToast(`✅ Tim "${tim.namaTim}" berhasil dihapus`, "success");
+          
+          // Tunggu sebentar sebelum refresh
+          setTimeout(() => {
+            loadTim();
+          }, 500);
+        } catch (error) {
+          console.error("Error deleting tim:", error);
+          showFormToast(`❌ Gagal menghapus tim: ${error.message}`, "danger");
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error loading tim for deletion:", error);
+    showFormToast(`❌ Gagal memuat data tim: ${error.message}`, "danger");
+  }
 }
+
+// Ekspos fungsi ke window object
+window.editTim = editTim;
+window.deleteTim = deleteTim;

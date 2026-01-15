@@ -1,4 +1,3 @@
-// timAngkut/detailAnggotaJadwal.js
 import { API, getAuthHeaders, fetchAPI } from "../../api.js";
 
 // BUAT MODAL FUNCTIONS SENDIRI
@@ -108,12 +107,37 @@ function showConfirmModal(message, onConfirm, title = "Konfirmasi", confirmText 
     `, onConfirm, confirmText, cancelText);
 }
 
+// Pagination variables
+let detailAllData = [];
+let detailCurrentPage = 1;
+let detailPerPage = 10;
+
+// Get user from localStorage
+let iduser;
+let user;
+let username;
+
 export async function detailAnggotaJadwalTimAngkutPage() {
+
+    // Get user from localStorage
+    iduser = localStorage.getItem("user");
+    if (!iduser) {
+        window.location.href = "#/login";
+        return;
+    }
+    user = JSON.parse(iduser);
+    username = user ? user.username : null;
+
+    if (!username) {
+        console.error("User not found in localStorage");
+        return;
+    }
+    
     const mainContent = document.getElementById("mainContent");
     mainContent.innerHTML = `
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>📅 Jadwal Pengangkutan Tim Saya</h2>
+                <h2>📅 Jadwal Pengangkutan Tim ${username}</h2>
                 <button id="refreshBtn" style="padding: 8px 16px; background: #17a2b8; color: white;">🔄 Refresh</button>
             </div>
             
@@ -130,9 +154,6 @@ export async function detailAnggotaJadwalTimAngkutPage() {
                     <option value="dalam_proses">Dalam Proses</option>
                     <option value="selesai">Selesai</option>
                     <option value="dibatalkan">Dibatalkan</option>
-                </select>
-                <select id="filterAnggota" style="padding: 8px; width: 200px;">
-                    <option value="">Semua Anggota</option>
                 </select>
                 <input type="text" id="searchAnggota" placeholder="Cari nama anggota..." style="padding: 8px; width: 250px;">
             </div>
@@ -166,87 +187,51 @@ export async function detailAnggotaJadwalTimAngkutPage() {
                 <p>Loading data...</p>
             </div>
             
-            <!-- Panduan untuk tim angkut -->
-            <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-                <h4 style="margin-top: 0; color: #856404;">🚚 Panduan Tim Pengangkut:</h4>
-                <ul style="margin-bottom: 0;">
-                    <li><strong>Terjadwal</strong> → <strong>Dalam Proses</strong>: Klik tombol "Mulai" saat berangkat mengambil sampah</li>
-                    <li><strong>Dalam Proses</strong> → <strong>Selesai</strong>: Klik tombol "Selesai" setelah sampah terambil</li>
-                    <li>Gunakan kolom catatan untuk mencatat informasi penting selama pengangkutan</li>
-                    <li>Tekan tombol "Lihat Lokasi" untuk melihat alamat anggota</li>
-                </ul>
-            </div>
+            <!-- Pagination Container -->
+            <div id="detailPagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center;"></div>
         </div>
     `;
 
     document.getElementById('refreshBtn').onclick = loadDetailAnggotaJadwalTimAngkut;
     document.getElementById('filterTanggal').onchange = loadDetailAnggotaJadwalTimAngkut;
     document.getElementById('filterStatus').onchange = loadDetailAnggotaJadwalTimAngkut;
-    document.getElementById('filterAnggota').onchange = loadDetailAnggotaJadwalTimAngkut;
     document.getElementById('searchAnggota').oninput = loadDetailAnggotaJadwalTimAngkut;
-    
-    // Load dropdown data
-    loadAnggotaOptions();
     
     // Load data
     loadDetailAnggotaJadwalTimAngkut();
 }
 
-async function loadAnggotaOptions() {
-    try {
-        // Load data detail dulu untuk mendapatkan daftar anggota di jadwal tim ini
-        const details = await fetchAPI(API.detailAnggotaJadwal, {
-            headers: getAuthHeaders()
-        });
-        
-        // Ambil unique anggota dari data
-        const anggotaMap = new Map();
-        details.forEach(detail => {
-            if (detail.idAnggota && detail.nama_anggota) {
-                anggotaMap.set(detail.idAnggota, detail.nama_anggota);
-            }
-        });
-        
-        const anggotaSelect = document.getElementById('filterAnggota');
-        
-        // Clear existing options except first one
-        while (anggotaSelect.options.length > 1) {
-            anggotaSelect.remove(1);
-        }
-        
-        // Tambahkan opsi dari map
-        anggotaMap.forEach((nama, id) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = nama;
-            anggotaSelect.appendChild(option);
-        });
-        
-    } catch (error) {
-        console.error('Error loading anggota options:', error);
-    }
-}
-
 async function loadDetailAnggotaJadwalTimAngkut() {
     const filterTanggal = document.getElementById('filterTanggal').value;
     const filterStatus = document.getElementById('filterStatus').value;
-    const filterAnggota = document.getElementById('filterAnggota').value;
     const searchAnggota = document.getElementById('searchAnggota').value;
     
     try {
-        // Load data detail - backend sudah filter hanya untuk tim angkut ini
+        // Load data detail
         const details = await fetchAPI(API.detailAnggotaJadwal, {
             headers: getAuthHeaders()
         });
+
+        console.log("Semua data jadwal:", details);
+        console.log("Username yang login:", username);
 
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
-        // Filter data
+        // Filter data berdasarkan nama_tim yang sama dengan username
         const filteredDetails = details.filter(detail => {
             const tanggalJadwal = detail.tanggal_jadwal || '';
             const namaAnggota = detail.nama_anggota || '';
             const status = detail.status_pengangkutan || '';
+            const namaTim = detail.nama_tim || '';
+            
+            // Filter utama: nama_tim harus sama dengan username
+            const matchTim = namaTim === username;
+            
+            if (!matchTim) {
+                console.log(`Data ${detail.id} tidak sesuai: nama_tim=${namaTim}, username=${username}`);
+                return false;
+            }
             
             // Filter tanggal
             let matchTanggal = true;
@@ -272,24 +257,30 @@ async function loadDetailAnggotaJadwalTimAngkut() {
             // Filter status
             const matchStatus = !filterStatus || status === filterStatus;
             
-            // Filter anggota
-            const matchAnggota = !filterAnggota || detail.idAnggota == filterAnggota;
-            
             // Search anggota
             const matchSearch = !searchAnggota || 
                 namaAnggota.toLowerCase().includes(searchAnggota.toLowerCase());
             
-            return matchTanggal && matchStatus && matchAnggota && matchSearch;
+            return matchTim && matchTanggal && matchStatus && matchSearch;
         });
+
+        console.log("Data setelah filter:", filteredDetails);
+        
+        // Simpan semua data ke variabel global
+        detailAllData = filteredDetails;
+        
+        // Reset ke halaman 1 saat filter berubah
+        detailCurrentPage = 1;
 
         // Update stats
         updateStatsOverview(filteredDetails);
         
-        // Render table
-        renderDetailTableTimAngkut(filteredDetails);
+        // Render table dengan pagination
+        renderDetailTableTimAngkut();
     } catch (error) {
         document.getElementById('detailTableContainer').innerHTML = 
             `<p style="color: red;">Error loading data: ${error.message}</p>`;
+        document.getElementById('detailPagination').innerHTML = '';
     }
 }
 
@@ -308,17 +299,44 @@ function updateStatsOverview(details) {
     document.querySelector('#statsOverview div:nth-child(4) div:first-child').textContent = stats.dibatalkan;
 }
 
-function renderDetailTableTimAngkut(detailList) {
+function renderDetailTableTimAngkut() {
     const container = document.getElementById('detailTableContainer');
+    const paginationContainer = document.getElementById('detailPagination');
     
-    if (!detailList || detailList.length === 0) {
+    if (!container) return;
+
+    // Hitung data yang akan ditampilkan
+    const totalData = detailAllData.length;
+    const totalPages = Math.ceil(totalData / detailPerPage);
+
+    // Validasi halaman saat ini
+    if (detailCurrentPage > totalPages && totalPages > 0) {
+        detailCurrentPage = totalPages;
+    }
+    
+    // Jika tidak ada data, reset ke halaman 1
+    if (totalData === 0) {
+        detailCurrentPage = 1;
+    }
+
+    // Ambil data untuk halaman saat ini
+    const startIndex = (detailCurrentPage - 1) * detailPerPage;
+    const endIndex = Math.min(startIndex + detailPerPage, totalData);
+    const currentPageData = detailAllData.slice(startIndex, endIndex);
+
+    // Hitung angka untuk display
+    const startData = totalData > 0 ? startIndex + 1 : 0;
+    const endData = endIndex;
+
+    if (!currentPageData || currentPageData.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px;">
                 <div style="font-size: 48px; color: #6c757d; margin-bottom: 15px;">📭</div>
                 <h3 style="color: #6c757d;">Tidak ada jadwal</h3>
-                <p style="color: #6c757d;">Tidak ada jadwal pengangkutan yang ditugaskan ke tim Anda.</p>
+                <p style="color: #6c757d;">Tidak ada jadwal pengangkutan yang ditugaskan ke tim Anda (${username}).</p>
             </div>
         `;
+        paginationContainer.innerHTML = '';
         return;
     }
 
@@ -327,19 +345,21 @@ function renderDetailTableTimAngkut(detailList) {
             <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
                 <thead>
                     <tr style="background: #f2f2f2;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">ID</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">No</th>
                         <th style="padding: 10px; border: 1px solid #ddd;">Tanggal</th>
                         <th style="padding: 10px; border: 1px solid #ddd;">Anggota</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Nama Tim</th>
                         <th style="padding: 10px; border: 1px solid #ddd;">Status</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Catatan Anggota</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Aksi</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Catatan</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Detail</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${detailList.map(detail => {
+                    ${currentPageData.map((detail, index) => {
                         const detailId = detail.id || 'N/A';
                         const tanggalJadwal = detail.tanggal_jadwal || '';
                         const namaAnggota = detail.nama_anggota || 'Anggota';
+                        const namaTim = detail.nama_tim || 'N/A';
                         
                         // Format tanggal untuk display
                         let tanggalDisplay = tanggalJadwal;
@@ -368,34 +388,16 @@ function renderDetailTableTimAngkut(detailList) {
                             catatan.substring(0, 30) + (catatan.length > 30 ? '...' : '') : 
                             '<span style="color: #999; font-style: italic;">Tidak ada catatan</span>';
                         
-                        // Tentukan tombol aksi berdasarkan status
-                        let actionButtons = '';
-                        if (detail.status_pengangkutan === 'terjadwal') {
-                            actionButtons = `
-                                <button onclick="mulaiPengangkutan(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #ffc107; color: black; border: none; border-radius: 3px; margin-bottom: 3px;">🚚 Mulai</button>
-                                <button onclick="viewDetailTimAngkut(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #17a2b8; color: white; border: none; border-radius: 3px; margin-bottom: 3px;">📋 Detail</button>
-                                <button onclick="lihatLokasi(${detailId})" style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 3px; margin-bottom: 3px;">📍 Lokasi</button>
-                            `;
-                        } else if (detail.status_pengangkutan === 'dalam_proses') {
-                            actionButtons = `
-                                <button onclick="selesaikanPengangkutan(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #28a745; color: white; border: none; border-radius: 3px; margin-bottom: 3px;">✅ Selesai</button>
-                                <button onclick="tambahCatatanTim(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #6f42c1; color: white; border: none; border-radius: 3px; margin-bottom: 3px;">📝 Catatan</button>
-                                <button onclick="viewDetailTimAngkut(${detailId})" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px; margin-bottom: 3px;">📋 Detail</button>
-                            `;
-                        } else if (detail.status_pengangkutan === 'selesai') {
-                            actionButtons = `
-                                <button onclick="viewDetailTimAngkut(${detailId})" style="padding: 4px 8px; margin-right: 5px; background: #17a2b8; color: white; border: none; border-radius: 3px;">📋 Detail</button>
-                                <button onclick="tambahCatatanTim(${detailId})" style="padding: 4px 8px; background: #6f42c1; color: white; border: none; border-radius: 3px;">📝 Catatan</button>
-                            `;
-                        } else {
-                            actionButtons = `
-                                <button onclick="viewDetailTimAngkut(${detailId})" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px;">📋 Detail</button>
-                            `;
-                        }
+                        // Tombol detail saja
+                        const actionButtons = `
+                            <button onclick="viewDetailTimAngkut(${detailId})" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                <i class="bi bi-info-circle"></i> Detail
+                            </button>
+                        `;
                         
                         return `
                         <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${detailId}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startIndex + index + 1}</td>
                             <td style="padding: 10px; border: 1px solid #ddd; min-width: 120px;">
                                 ${tanggalDisplay}
                             </td>
@@ -406,12 +408,17 @@ function renderDetailTableTimAngkut(detailList) {
                                 </div>
                             </td>
                             <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                    ${namaTim}
+                                </span>
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                                 ${getStatusBadgeTimAngkut(detail.status_pengangkutan)}
                             </td>
                             <td style="padding: 10px; border: 1px solid #ddd; max-width: 150px; font-size: 13px;">
                                 ${catatanDisplay}
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; min-width: 200px;">
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                                 ${actionButtons}
                             </td>
                         </tr>
@@ -421,23 +428,159 @@ function renderDetailTableTimAngkut(detailList) {
             </table>
         </div>
         
-        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px; color: #666;">
-            <strong>Total:</strong> ${detailList.length} jadwal ditemukan • 
-            <strong>Terjadwal:</strong> ${detailList.filter(d => d.status_pengangkutan === 'terjadwal').length} • 
-            <strong>Dalam Proses:</strong> ${detailList.filter(d => d.status_pengangkutan === 'dalam_proses').length} • 
-            <strong>Selesai:</strong> ${detailList.filter(d => d.status_pengangkutan === 'selesai').length}
+        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 14px; color: #666;">
+            <strong>Menampilkan ${startData} - ${endData} dari ${totalData} jadwal</strong> • 
+            Terjadwal: ${detailAllData.filter(d => d.status_pengangkutan === 'terjadwal').length} • 
+            Dalam Proses: ${detailAllData.filter(d => d.status_pengangkutan === 'dalam_proses').length} • 
+            Selesai: ${detailAllData.filter(d => d.status_pengangkutan === 'selesai').length}
         </div>
     `;
 
     container.innerHTML = tableHTML;
     
+    // Render pagination
+    renderDetailPagination(totalPages, startData, endData, totalData);
+    
     // Attach functions to window
     window.viewDetailTimAngkut = viewDetailTimAngkut;
-    window.mulaiPengangkutan = mulaiPengangkutan;
-    window.selesaikanPengangkutan = selesaikanPengangkutan;
-    window.tambahCatatanTim = tambahCatatanTim;
-    window.lihatLokasi = lihatLokasi;
 }
+
+function renderDetailPagination(totalPages, startData, endData, totalData) {
+    const paginationContainer = document.getElementById('detailPagination');
+
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <small class="text-muted">
+                    Menampilkan ${startData} - ${endData} dari ${totalData} jadwal
+                </small>
+                <select id="detailPerPageSelect" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="10" ${detailPerPage === 10 ? 'selected' : ''}>10 per halaman</option>
+                    <option value="20" ${detailPerPage === 20 ? 'selected' : ''}>20 per halaman</option>
+                    <option value="50" ${detailPerPage === 50 ? 'selected' : ''}>50 per halaman</option>
+                    <option value="100" ${detailPerPage === 100 ? 'selected' : ''}>100 per halaman</option>
+                </select>
+            </div>
+        `;
+        
+        const perPageSelect = document.getElementById('detailPerPageSelect');
+        if (perPageSelect) {
+            perPageSelect.onchange = function() {
+                detailPerPage = parseInt(this.value);
+                detailCurrentPage = 1;
+                renderDetailTableTimAngkut();
+            };
+        }
+        return;
+    }
+
+    let startPage = Math.max(1, detailCurrentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHTML = `
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <small style="color: #666;">
+                    Menampilkan ${startData} - ${endData} dari ${totalData} | 
+                    Halaman ${detailCurrentPage} dari ${totalPages}
+                </small>
+            </div>
+            
+            <div style="display: flex; gap: 5px;">
+    `;
+
+    if (detailCurrentPage > 1) {
+        paginationHTML += `
+            <button onclick="changeDetailPage(${detailCurrentPage - 1})" 
+                    style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px;">
+                ←
+            </button>
+        `;
+    } else {
+        paginationHTML += `
+            <button disabled style="padding: 5px 10px; border: 1px solid #ddd; background: #f5f5f5; cursor: not-allowed; border-radius: 4px; color: #999;">
+                ←
+            </button>
+        `;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === detailCurrentPage) {
+            paginationHTML += `
+                <button style="padding: 5px 10px; border: 1px solid #ddd; background: #007bff; color: white; cursor: default; border-radius: 4px;">
+                    ${i}
+                </button>
+            `;
+        } else {
+            paginationHTML += `
+                <button onclick="changeDetailPage(${i})" 
+                        style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px;">
+                    ${i}
+                </button>
+            `;
+        }
+    }
+
+    if (detailCurrentPage < totalPages) {
+        paginationHTML += `
+            <button onclick="changeDetailPage(${detailCurrentPage + 1})" 
+                    style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px;">
+                →
+            </button>
+        `;
+    } else {
+        paginationHTML += `
+            <button disabled style="padding: 5px 10px; border: 1px solid #ddd; background: #f5f5f5; cursor: not-allowed; border-radius: 4px; color: #999;">
+                →
+            </button>
+        `;
+    }
+
+    paginationHTML += `
+            </div>
+            
+            <div>
+                <select id="detailPerPageSelect" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="10" ${detailPerPage === 10 ? 'selected' : ''}>10 per halaman</option>
+                    <option value="20" ${detailPerPage === 20 ? 'selected' : ''}>20 per halaman</option>
+                    <option value="50" ${detailPerPage === 50 ? 'selected' : ''}>50 per halaman</option>
+                    <option value="100" ${detailPerPage === 100 ? 'selected' : ''}>100 per halaman</option>
+                </select>
+            </div>
+        </div>
+    `;
+
+    paginationContainer.innerHTML = paginationHTML;
+    
+    const perPageSelect = document.getElementById('detailPerPageSelect');
+    if (perPageSelect) {
+        perPageSelect.onchange = function() {
+            detailPerPage = parseInt(this.value);
+            detailCurrentPage = 1;
+            renderDetailTableTimAngkut();
+        };
+    }
+}
+
+// Function to change page
+window.changeDetailPage = function(pageNumber) {
+    if (pageNumber < 1 || pageNumber > Math.ceil(detailAllData.length / detailPerPage)) {
+        return;
+    }
+    
+    detailCurrentPage = pageNumber;
+    
+    const tableContainer = document.getElementById('detailTableContainer');
+    if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    renderDetailTableTimAngkut();
+};
 
 function getStatusBadgeTimAngkut(status) {
     const statusConfig = {
@@ -466,126 +609,6 @@ function getStatusBadgeTimAngkut(status) {
     `;
 }
 
-async function mulaiPengangkutan(detailId) {
-    showConfirmModal('Mulai pengangkutan untuk jadwal ini?', async () => {
-        try {
-            await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    status_pengangkutan: 'dalam_proses'
-                })
-            });
-            
-            alert('🚚 Pengangkutan telah dimulai!');
-            loadDetailAnggotaJadwalTimAngkut();
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    }, 'Mulai Pengangkutan', 'Ya, Mulai', 'Batal');
-}
-
-async function selesaikanPengangkutan(detailId) {
-    const formHTML = `
-        <form id="selesaiForm">
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">
-                    <strong>Catatan Selesai (Opsional)</strong>
-                    <small style="color: #666; font-weight: normal;"> - Contoh: "Sampah telah terambil, kondisi baik"</small>
-                </label>
-                <textarea id="catatanSelesai" style="width: 100%; padding: 8px; height: 80px;" 
-                          placeholder="Contoh: Sampah organik 3 karung sudah terambil, kondisi sampah baik..."></textarea>
-            </div>
-            
-            <div style="padding: 10px; background: #d4edda; border-radius: 5px; margin-bottom: 15px;">
-                <p style="margin: 0; color: #155724;">
-                    <strong>✅ Konfirmasi:</strong> Pastikan sampah telah terambil dengan baik sebelum menekan tombol "Selesai".
-                </p>
-            </div>
-        </form>
-    `;
-
-    showModal('Konfirmasi Selesai', formHTML, async () => {
-        const catatanSelesai = document.getElementById('catatanSelesai').value || '';
-        
-        // Gabungkan catatan jika ada catatan lama
-        try {
-            const detail = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-                headers: getAuthHeaders()
-            });
-            
-            const catatanLama = detail.catatan || '';
-            const catatanBaru = catatanSelesai ? 
-                (catatanLama ? `${catatanLama}\n\n[Tim]: ${catatanSelesai}` : `[Tim]: ${catatanSelesai}`) : 
-                catatanLama;
-
-            await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    status_pengangkutan: 'selesai',
-                    catatan: catatanBaru
-                })
-            });
-            
-            alert('✅ Pengangkutan telah selesai!');
-            loadDetailAnggotaJadwalTimAngkut();
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    }, 'Selesai', 'Ya, Selesai', 'Batal');
-}
-
-async function tambahCatatanTim(detailId) {
-    try {
-        const detail = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-            headers: getAuthHeaders()
-        });
-
-        const formHTML = `
-            <form id="catatanTimForm">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px;">
-                        <strong>Catatan Tim Pengangkut</strong>
-                        <small style="color: #666; font-weight: normal;"> - Tambahkan catatan dari tim</small>
-                    </label>
-                    <textarea id="catatanTim" style="width: 100%; padding: 8px; height: 100px;" 
-                              placeholder="Contoh: Rumah sulit ditemukan, sampah lebih banyak dari perkiraan, kondisi jalan macet...">${detail.catatan || ''}</textarea>
-                </div>
-                
-                <div style="padding: 10px; background: #e7f3ff; border-radius: 5px; margin-bottom: 15px;">
-                    <p style="margin: 0; color: #0056b3;">
-                        <strong>📝 Info:</strong> Catatan ini akan ditambahkan ke catatan yang sudah ada.
-                    </p>
-                </div>
-            </form>
-        `;
-
-        showModal('Tambah Catatan Tim', formHTML, async () => {
-            const catatanTim = document.getElementById('catatanTim').value || '';
-
-            try {
-                await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-                    method: 'PATCH',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        catatan: catatanTim
-                    })
-                });
-
-                alert('✅ Catatan tim berhasil disimpan!');
-                loadDetailAnggotaJadwalTimAngkut();
-            } catch (error) {
-                console.error('Update error:', error);
-                alert('Error: ' + error.message);
-            }
-        });
-
-    } catch (error) {
-        alert('Error loading data: ' + error.message);
-    }
-}
-
 async function viewDetailTimAngkut(detailId) {
     try {
         const detail = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
@@ -611,6 +634,13 @@ async function viewDetailTimAngkut(detailId) {
                     <div style="display: grid; grid-template-columns: 150px 1fr; gap: 15px; margin-bottom: 20px;">
                         <div style="font-weight: 600; color: #555;">ID:</div>
                         <div>${detail.id || 'N/A'}</div>
+                        
+                        <div style="font-weight: 600; color: #555;">Nama Tim:</div>
+                        <div>
+                            <span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px;">
+                                ${detail.nama_tim || 'N/A'}
+                            </span>
+                        </div>
                         
                         <div style="font-weight: 600; color: #555;">Status:</div>
                         <div>
@@ -640,9 +670,6 @@ async function viewDetailTimAngkut(detailId) {
                         
                         <div style="font-weight: 600; color: #555;">Dibuat:</div>
                         <div>${detail.created_at ? new Date(detail.created_at).toLocaleString('id-ID') : 'N/A'}</div>
-                        
-                        <div style="font-weight: 600; color: #555;">Terakhir Update:</div>
-                        <div>${detail.updated_at ? new Date(detail.updated_at).toLocaleString('id-ID') : 'N/A'}</div>
                     </div>
                 </div>
             </div>
@@ -654,84 +681,6 @@ async function viewDetailTimAngkut(detailId) {
     }
 }
 
-async function lihatLokasi(detailId) {
-    try {
-        const detail = await fetchAPI(`${API.detailAnggotaJadwal}${detailId}/`, {
-            headers: getAuthHeaders()
-        });
-
-        // Fetch detail anggota untuk mendapatkan alamat lengkap
-        let anggotaDetail = null;
-        if (detail.idAnggota) {
-            try {
-                anggotaDetail = await fetchAPI(`${API.anggota}${detail.idAnggota}/`, {
-                    headers: getAuthHeaders()
-                });
-            } catch (error) {
-                console.warn('Tidak bisa fetch detail anggota:', error);
-            }
-        }
-
-        const alamat = anggotaDetail?.alamat || 'Alamat tidak tersedia';
-        const namaAnggota = detail.nama_anggota || anggotaDetail?.nama || 'Anggota';
-        
-        // Encode alamat untuk Google Maps
-        const encodedAlamat = encodeURIComponent(alamat);
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAlamat}`;
-
-        const lokasiHTML = `
-            <div>
-                <h3>📍 Lokasi Anggota</h3>
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 15px;">
-                    <div style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #555; margin-bottom: 5px;">Nama Anggota:</div>
-                        <div style="font-size: 18px; font-weight: bold;">${namaAnggota}</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #555; margin-bottom: 5px;">Alamat:</div>
-                        <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
-                            ${alamat}
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <div style="font-weight: 600; color: #555; margin-bottom: 5px;">Kontak:</div>
-                        <div style="background: white; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-                            <strong>Telp/WA:</strong> ${anggotaDetail?.noWA || 'Tidak tersedia'}
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 20px;">
-                        <a href="${mapsUrl}" target="_blank" style="
-                            display: inline-block;
-                            padding: 12px 24px;
-                            background: #4285f4;
-                            color: white;
-                            text-decoration: none;
-                            border-radius: 8px;
-                            font-weight: bold;
-                            font-size: 16px;
-                        ">
-                            🗺️ Buka di Google Maps
-                        </a>
-                    </div>
-                    
-                    <div style="margin-top: 20px; padding: 10px; background: #fff3cd; border-radius: 5px;">
-                        <p style="margin: 0; color: #856404;">
-                            <strong>💡 Tips:</strong> Gunakan tombol di atas untuk membuka alamat di Google Maps. 
-                            Jika alamat tidak akurat, hubungi anggota untuk konfirmasi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        showModal('Lokasi Anggota', lokasiHTML);
-    } catch (error) {
-        alert('Error loading lokasi: ' + error.message);
-    }
-}
-
 // Tambahkan ke window untuk akses global
 window.detailAnggotaJadwalTimAngkutPage = detailAnggotaJadwalTimAngkutPage;
+window.changeDetailPage = changeDetailPage;

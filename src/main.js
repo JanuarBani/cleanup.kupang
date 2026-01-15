@@ -1,4 +1,10 @@
-// main.js - VERSION FIXED
+import { registerSW } from "virtual:pwa-register";
+
+registerSW({
+  immediate: true,
+});
+
+
 console.log("🚀 MAIN.JS STARTING...");
 
 // Update loading status if function exists

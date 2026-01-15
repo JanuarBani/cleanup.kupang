@@ -1,4 +1,4 @@
-// pages/dashboard_admin.js - PERBAIKAN LENGKAP DENGAN BOOTSTRAP 5
+// pages/dashboard_admin.js - DENGAN BOOTSTRAP 5 MURNI
 import { authGuard } from "../utils/authGuard.js";
 import { userAdminPage } from "./admin/users.js";
 import { timAdminPage } from "./admin/tim.js";
@@ -8,8 +8,11 @@ import { jadwalAdminPage } from "./admin/jadwal.js";
 import { pembayaranAdminPage } from "./admin/pembayaran.js";
 import { laporanAdminPage } from "./admin/laporan.js";
 import { detailAnggotaJadwalAdminPage } from "./admin/detailAnggotaJadwal.js";
-import { reportsAdminPage } from "./admin/reports.js"; 
+import { reportsAdminPage } from "./admin/reports.js";
+
 import { API, getAuthHeaders } from "../api.js";
+import { adminNotifications } from "../utils/adminNotifications.js";
+import { showToast } from "../utils/toast.js";
 
 export async function dashboardAdmin() {
     const user = await authGuard();
@@ -30,36 +33,43 @@ export async function dashboardAdmin() {
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         
-        <div class="container-fluid p-0 g-0" style="min-height: 100vh;">
-            <!-- Sidebar dengan Bootstrap Offcanvas untuk semua device -->
+        <div class="container-fluid p-0" style="min-height: 100vh;">
             <div class="d-flex">
                 <!-- Desktop Sidebar (LG ke atas) -->
-                <div class="d-none d-lg-flex flex-column flex-shrink-0 p-3 bg-success text-white" 
+                <aside class="d-none d-lg-flex flex-column flex-shrink-0 bg-success text-white" 
                     style="width: 280px; min-height: 100vh; position: sticky; top: 0;">
-                    <div class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-                        <span class="fs-4 fw-bold">
-                            <i class="bi bi-recycle me-2"></i>CleanUp
-                        </span>
-                    </div>
                     
-                    <div class="mb-4 mt-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center" 
-                                style="width: 40px; height: 40px; font-weight: bold; font-size: 18px;">
-                                ${user.username.charAt(0).toUpperCase()}
+                    <!-- Header dengan LOGO -->
+                    <div class="bg-success text-white border-bottom border-white-20 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center">
+                                <!-- LOGO CleanUp di Sidebar -->
+                                <div class="me-3">
+                                    <img src="/logo/logo_3d.png" 
+                                         alt="CleanUp Kupang Logo" 
+                                         style="height: 40px; width: auto;">
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">${user.username}</h5>
+                                    <small class="text-white-50">ADMIN</small>
+                                </div>
                             </div>
-                            <div class="ms-3">
-                                <p class="mb-1 fw-semibold">${user.username}</p>
-                                <span class="badge bg-warning text-dark">ADMIN</span>
-                            </div>
+                            <!-- Close button hanya untuk konsistensi visual -->
+                            <button type="button" class="btn-close btn-close-white opacity-50" disabled></button>
+                        </div>
+                        
+                        <!-- Brand centered -->
+                        <div class="d-flex align-items-center justify-content-center pt-2">
+                            <span class="fs-4 fw-bold text-white">
+                                <i class="bi bi-recycle me-2"></i>CleanUp Kupang
+                            </span>
                         </div>
                     </div>
                     
-                    <hr class="bg-white">
-                    
-                    <ul class="nav nav-pills flex-column mb-auto" id="sidebarMenuDesktop">
+                    <!-- Navigation dengan padding seperti mobile -->
+                    <ul class="nav nav-pills flex-column mb-auto p-3" id="sidebarMenuDesktop">
                         <li class="nav-item mb-2">
-                            <button class="nav-link active text-start w-100 d-flex align-items-center" data-page="dashboard">
+                            <button class="nav-link active text-white bg-white-10 w-100 d-flex align-items-center" data-page="dashboard">
                                 <i class="bi bi-speedometer2 me-2"></i>
                                 <span>Dashboard Utama</span>
                             </button>
@@ -72,23 +82,31 @@ export async function dashboardAdmin() {
                             </p>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="users">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="users">
                                 <i class="bi bi-person me-2"></i>
                                 <span>Users</span>
                             </button>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="anggota">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="anggota">
                                 <i class="bi bi-people-fill me-2"></i>
                                 <span>Anggota</span>
                             </button>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="tamu">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="tamu">
                                 <i class="bi bi-person-plus me-2"></i>
                                 <span>Tamu</span>
                             </button>
                         </li>
+
+                        <!-- Notifikasi Section -->
+                        <li class="nav-item">
+                            <p class="small text-uppercase text-white-50 mt-4 mb-2 fw-semibold">
+                                <i class="bi bi-bell me-1"></i> NOTIFIKASI
+                            </p>
+                        </li>
+
                         
                         <!-- Operasional Section -->
                         <li class="nav-item">
@@ -97,19 +115,19 @@ export async function dashboardAdmin() {
                             </p>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="tim">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="tim">
                                 <i class="bi bi-truck me-2"></i>
                                 <span>Tim Pengangkut</span>
                             </button>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="jadwal">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="jadwal">
                                 <i class="bi bi-calendar-check me-2"></i>
                                 <span>Jadwal</span>
                             </button>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="detailJadwal">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="detailJadwal">
                                 <i class="bi bi-calendar-week me-2"></i>
                                 <span>Detail Jadwal</span>
                             </button>
@@ -122,7 +140,7 @@ export async function dashboardAdmin() {
                             </p>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="pembayaran">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="pembayaran">
                                 <i class="bi bi-cash-stack me-2"></i>
                                 <span>Pembayaran</span>
                             </button>
@@ -135,22 +153,21 @@ export async function dashboardAdmin() {
                             </p>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="laporan">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="laporan">
                                 <i class="bi bi-trash me-2"></i>
                                 <span>Laporan Sampah</span>
                             </button>
                         </li>
                         <li class="nav-item mb-1">
-                            <button class="nav-link text-start w-100 d-flex align-items-center" data-page="reports">
+                            <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" data-page="reports">
                                 <i class="bi bi-graph-up me-2"></i>
                                 <span>Analitik & Laporan</span>
                             </button>
                         </li>
                     </ul>
                     
-                    <hr class="bg-white">
-                    
-                    <div class="mt-auto">
+                    <!-- Footer dengan border seperti mobile -->
+                    <div class="p-3 border-top border-white-20 mt-auto">
                         <button class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center" id="btnLogout">
                             <i class="bi bi-box-arrow-right me-2"></i>
                             Logout
@@ -159,35 +176,42 @@ export async function dashboardAdmin() {
                             <small class="text-white-50">v1.0.0 • CleanUp System</small>
                         </div>
                     </div>
-                </div>
+                </aside>
                 
-                <!-- Mobile Sidebar (Offcanvas) untuk semua device di bawah LG -->
-                <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="sidebarOffcanvas" 
-                    style="width: 280px; background: linear-gradient(180deg, #198754 0%, #146c43 100%);">
-                    <div class="offcanvas-header border-bottom border-white-20">
+                <!-- Mobile Sidebar (Offcanvas) -->
+                <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="sidebarOffcanvas" style="width: 280px;">
+                    <div class="offcanvas-header bg-success text-white border-bottom border-white-20">
                         <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center me-3" 
-                                style="width: 40px; height: 40px; font-weight: bold; font-size: 18px;">
-                                ${user.username.charAt(0).toUpperCase()}
+                            <!-- LOGO CleanUp di Offcanvas -->
+                            <div class="me-3">
+                                <img src="/logo/logo_3d.png" 
+                                     alt="CleanUp Kupang Logo" 
+                                     style="height: 35px; width: auto;">
                             </div>
                             <div>
-                                <h5 class="offcanvas-title text-white mb-0">${user.username}</h5>
+                                <h5 class="offcanvas-title mb-0">${user.username}</h5>
                                 <small class="text-white-50">ADMIN</small>
                             </div>
                         </div>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
                     </div>
                     
-                    <div class="offcanvas-body p-0">
+                    <div class="offcanvas-body p-0 bg-success">
                         <div class="d-flex align-items-center justify-content-center p-3 border-bottom border-white-20">
-                            <span class="fs-4 fw-bold text-white">
-                                <i class="bi bi-recycle me-2"></i>CleanUp
-                            </span>
+                            <!-- Logo dan Brand -->
+                            <div class="d-flex align-items-center">
+                                <img src="/logo/logo_3d.png" 
+                                     alt="CleanUp Kupang Logo" 
+                                     style="height: 40px; width: auto; margin-right: 10px;">
+                                <span class="fs-4 fw-bold text-white">
+                                    CleanUp Kupang
+                                </span>
+                            </div>
                         </div>
                         
                         <ul class="nav nav-pills flex-column mb-auto p-3" id="sidebarMenuMobile">
                             <li class="nav-item mb-2">
-                                <button class="nav-link active text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link active text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="dashboard" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-speedometer2 me-2"></i>
                                     <span>Dashboard Utama</span>
@@ -201,25 +225,32 @@ export async function dashboardAdmin() {
                                 </p>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="users" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-person me-2"></i>
                                     <span>Users</span>
                                 </button>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="anggota" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-people-fill me-2"></i>
                                     <span>Anggota</span>
                                 </button>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="tamu" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-person-plus me-2"></i>
                                     <span>Tamu</span>
                                 </button>
+                            </li>
+
+                            <!-- Notifikasi Section -->
+                            <li class="nav-item">
+                                <p class="small text-uppercase text-white-50 mt-4 mb-2 fw-semibold">
+                                    <i class="bi bi-bell me-1"></i> NOTIFIKASI
+                                </p>
                             </li>
                             
                             <!-- Operasional Section -->
@@ -229,21 +260,21 @@ export async function dashboardAdmin() {
                                 </p>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="tim" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-truck me-2"></i>
                                     <span>Tim Pengangkut</span>
                                 </button>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="jadwal" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-calendar-check me-2"></i>
                                     <span>Jadwal</span>
                                 </button>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="detailJadwal" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-calendar-week me-2"></i>
                                     <span>Detail Jadwal</span>
@@ -257,7 +288,7 @@ export async function dashboardAdmin() {
                                 </p>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="pembayaran" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-cash-stack me-2"></i>
                                     <span>Pembayaran</span>
@@ -271,14 +302,14 @@ export async function dashboardAdmin() {
                                 </p>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="laporan" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-trash me-2"></i>
                                     <span>Laporan Sampah</span>
                                 </button>
                             </li>
                             <li class="nav-item mb-1">
-                                <button class="nav-link text-start w-100 d-flex align-items-center text-white" 
+                                <button class="nav-link text-white bg-white-10 w-100 d-flex align-items-center" 
                                         data-page="reports" data-bs-dismiss="offcanvas">
                                     <i class="bi bi-graph-up me-2"></i>
                                     <span>Analitik & Laporan</span>
@@ -300,26 +331,109 @@ export async function dashboardAdmin() {
                 </div>
                 
                 <!-- Main Content Area -->
-                <div class="flex-grow-1">
-                    <!-- Top Navigation Bar -->
+                <main class="flex-grow-1 bg-light">
+                    <!-- Top Navigation Bar dengan LOGO -->
                     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm sticky-top" style="z-index: 999;">
                         <div class="container-fluid">
-                            <!-- Mobile Toggle Button untuk semua device di bawah LG -->
+                            <!-- Mobile Toggle Button -->
                             <button class="btn btn-success d-lg-none me-2" type="button" data-bs-toggle="offcanvas" 
                                     data-bs-target="#sidebarOffcanvas">
                                 <i class="bi bi-list fs-5"></i>
                             </button>
                             
-                            <!-- Page Title Area -->
+                            <!-- Page Title dengan LOGO -->
                             <div class="d-flex align-items-center">
+                                <!-- Logo untuk desktop -->
+                                <div class="d-none d-md-block me-3">
+                                    <img src="/logo/logo_3d.png" 
+                                         alt="CleanUp Kupang Logo" 
+                                         style="height: 35px; width: auto;">
+                                </div>
                                 <h5 class="mb-0 text-success fw-bold" id="pageTitle">
                                     <i class="bi bi-speedometer2 me-2"></i>Dashboard Admin
                                 </h5>
                             </div>
                             
-                            <!-- User Info Area -->
+                            <!-- User Info & Notifications -->
                             <div class="d-flex align-items-center">
-                                <div class="d-flex align-items-center me-3">
+                                <!-- Desktop Notification Bell -->
+                                <div class="dropdown me-3 d-none d-md-block">
+                                    <button class="btn btn-outline-success position-relative" 
+                                            id="notification-bell" 
+                                            type="button" 
+                                            data-bs-toggle="dropdown">
+                                        <i class="bi bi-bell fs-5"></i>
+                                        <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
+                                        <li><h6 class="dropdown-header">Notifikasi Admin</h6></li>
+                                        <li>
+                                            <div class="px-3 py-2">
+                                                <small class="text-muted d-block mb-1">Status:</small>
+                                                <div id="notification-status">
+                                                    <span class="badge bg-secondary">Memuat...</span>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button class="dropdown-item" id="viewNotificationsBtn">
+                                                <i class="bi bi-bell me-2"></i> Lihat Semua Notifikasi
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" id="toggleNotificationsBtn">
+                                                <i class="bi bi-bell me-2"></i> Aktif/Nonaktif Notifikasi
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <small class="text-muted px-3">Terakhir diperbarui: <span id="last-notification-check">-</span></small>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <!-- Mobile Notification Bell -->
+                                <div class="dropdown me-2 d-md-none">
+                                    <button class="btn btn-outline-success btn-sm position-relative" 
+                                            id="notification-bell-mobile" 
+                                            type="button" 
+                                            data-bs-toggle="dropdown">
+                                        <i class="bi bi-bell"></i>
+                                        <span id="notification-badge-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" style="min-width: 280px;">
+                                        <li><h6 class="dropdown-header">Notifikasi</h6></li>
+                                        <li>
+                                            <div class="px-3 py-2">
+                                                <small class="text-muted d-block mb-1">Status:</small>
+                                                <div id="notification-status-mobile">
+                                                    <span class="badge bg-secondary">Memuat...</span>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button class="dropdown-item" id="viewNotificationsBtnMobile">
+                                                <i class="bi bi-bell me-2"></i> Lihat Notifikasi
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" id="toggleNotificationsBtnMobile">
+                                                <i class="bi bi-bell-slash me-2"></i> Pengaturan
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <!-- User Info -->
+                                <div class="d-flex align-items-center">
+                                    <!-- Logo kecil untuk mobile -->
+                                    <div class="d-md-none me-2">
+                                        <img src="/logo/logo_3d.png" 
+                                             alt="CleanUp Kupang Logo" 
+                                             style="height: 25px; width: auto;">
+                                    </div>
                                     <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" 
                                         style="width: 40px; height: 40px; font-weight: bold;">
                                         ${user.username.charAt(0).toUpperCase()}
@@ -333,40 +447,285 @@ export async function dashboardAdmin() {
                         </div>
                     </nav>
                     
-                    <!-- Main Content Container -->
+                    <!-- Main Content Container dengan LOGO di tengah -->
                     <div class="container-fluid py-4 px-3 px-md-4">
                         <div class="row">
                             <div class="col-12">
-                                <div id="mainContent" class="animate__animated animate__fadeIn">
-                                    <!-- Konten akan dimuat di sini -->
+                                <div id="mainContent">
+                                    <!-- Welcome Content dengan LOGO -->
                                     <div class="text-center py-5">
+                                        <!-- Logo Besar di Tengah Dashboard -->
+                                        <div class="mb-4">
+                                            <img src="/logo/logo_3d.png" 
+                                                 alt="CleanUp Kupang Logo" 
+                                                 style="height: 100px; width: auto; margin-bottom: 20px;">
+                                        </div>
+                                        
                                         <div class="display-1 text-success mb-4">
                                             <i class="bi bi-speedometer2"></i>
                                         </div>
-                                        <h3 class="mb-3">Dashboard Admin CleanUp</h3>
-                                        <p class="text-muted">Pilih menu di sidebar untuk mengakses fitur</p>
+                                        <h3 class="mb-3">Dashboard Admin CleanUp Kupang</h3>
+                                        <p class="text-muted">Selamat datang di sistem manajemen CleanUp Kupang</p>
+                                        
+                                        <!-- Notification Alert -->
+                                        <div id="notification-alert" class="alert alert-info alert-dismissible fade show mt-4 mx-auto" style="max-width: 600px;">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-bell-fill fs-4 me-3"></i>
+                                                <div>
+                                                    <h5 class="alert-heading mb-2">Aktifkan Notifikasi Real-time</h5>
+                                                    <p class="mb-2">Dapatkan notifikasi langsung untuk pembayaran baru, laporan menunggu, jadwal, dan aktivitas penting lainnya.</p>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button class="btn btn-primary btn-sm" id="enableNotificationsAlert">
+                                                            <i class="bi bi-bell me-1"></i> Aktifkan Sekarang
+                                                        </button>
+                                                        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="alert">
+                                                            Nanti Saja
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </main>
             </div>
         </div>
         
         <!-- Bootstrap JS Bundle with Popper -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Animate.css for animations -->
+        <!-- Animate.css -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+        
+        <!-- Custom CSS untuk logo -->
+        <style>
+            /* Styling untuk logo di sidebar */
+            .sidebar-logo {
+                filter: brightness(0) invert(1);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar-logo:hover {
+                transform: scale(1.05);
+            }
+            
+            /* Styling untuk logo di navbar */
+            .navbar-logo {
+                transition: opacity 0.3s ease;
+            }
+            
+            .navbar-logo:hover {
+                opacity: 0.8;
+            }
+            
+            /* Styling untuk logo besar di dashboard */
+            .dashboard-logo {
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.05);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+            
+            /* Styling untuk logo mobile */
+            .mobile-logo {
+                filter: brightness(0) saturate(100%) invert(27%) sepia(98%) saturate(1500%) hue-rotate(130deg) brightness(90%) contrast(90%);
+            }
+            
+            /* Sidebar Styles */
+            .sidebar-link {
+                transition: all 0.3s ease;
+            }
+            
+            .sidebar-link:hover {
+                background-color: rgba(255, 255, 255, 0.15);
+                transform: translateX(5px);
+            }
+            
+            .sidebar-link.active {
+                background-color: rgba(255, 255, 255, 0.25);
+                border-left: 4px solid #ffc107;
+            }
+            
+            /* Offcanvas Custom */
+            .offcanvas-start {
+                background: linear-gradient(180deg, #198754 0%, #146c43 100%);
+            }
+            
+            .bg-white-10 {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+            }
+            
+            .bg-white-10:hover {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+            }
+            
+            /* Stats Cards */
+            .stats-card {
+                border-radius: 12px;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                border: none;
+                overflow: hidden;
+            }
+            
+            .stats-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+            }
+            
+            .stats-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 5px;
+                height: 100%;
+            }
+            
+            .stats-card-success::before { background: linear-gradient(to bottom, #198754, #2ecc71); }
+            .stats-card-primary::before { background: linear-gradient(to bottom, #0d6efd, #3498db); }
+            .stats-card-warning::before { background: linear-gradient(to bottom, #ffc107, #f39c12); }
+            .stats-card-info::before { background: linear-gradient(to bottom, #0dcaf0, #1abc9c); }
+            .stats-card-danger::before { background: linear-gradient(to bottom, #dc3545, #e74c3c); }
+            .stats-card-secondary::before { background: linear-gradient(to bottom, #6c757d, #7f8c8d); }
+            
+            .stats-icon {
+                width: 70px;
+                height: 70px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 32px;
+            }
+            
+            /* Trend Chart */
+            .trend-bar {
+                transition: all 0.3s ease;
+                min-height: 10px;
+                border-radius: 4px 4px 0 0;
+            }
+            
+            .trend-bar:hover {
+                opacity: 0.9;
+            }
+            
+            /* Activity Items */
+            .activity-item {
+                transition: all 0.3s ease;
+                border-left: 3px solid transparent;
+            }
+            
+            .activity-item:hover {
+                background-color: rgba(25, 135, 84, 0.05);
+                border-left-color: #198754;
+                transform: translateX(5px);
+            }
+            
+            /* Quick Actions */
+            .quick-action-btn {
+                transition: all 0.3s ease;
+                border: 2px solid rgba(25, 135, 84, 0.1);
+            }
+            
+            .quick-action-btn:hover {
+                background: linear-gradient(135deg, #198754, #146c43);
+                color: white;
+                border-color: transparent;
+                transform: translateY(-3px);
+            }
+            
+            /* Scrollbar */
+            .custom-scrollbar {
+                scrollbar-width: thin;
+                scrollbar-color: #198754 transparent;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.05);
+                border-radius: 3px;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(25, 135, 84, 0.5);
+                border-radius: 3px;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: rgba(25, 135, 84, 0.7);
+            }
+            
+            /* Animation */
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .animate-fadeInUp {
+                animation: fadeInUp 0.6s ease-out;
+            }
+        </style>
     `;
 
-    // Add custom CSS styles
-    addDashboardStyles();
-
-    // Navigation event listeners for both desktop and mobile
+    // Setup event listeners
     setupNavigation();
+    setupLogoutListeners();
+    setupNotificationEventListeners();
     
-    // PERBAIKAN: Logout event listeners - gunakan window.logout
+    // Initialize Web Push for admin
+    await adminNotifications.initialize();
+    
+    // Check initial notifications
+    await adminNotifications.checkForNewNotifications();
+    
+    // Update last check time
+    updateLastCheckTime();
+
+    // Load default page
+    await showDashboardStats();
+}
+
+function setupNavigation() {
+    // Ganti selector ini untuk mencakup kedua sidebar (desktop dan mobile)
+    const menuButtons = document.querySelectorAll('#sidebarMenuDesktop button[data-page], #sidebarMenuMobile button[data-page]');
+    
+    menuButtons.forEach(btn => {
+        btn.onclick = () => {
+            // Remove active class from all buttons in both sidebars
+            menuButtons.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            btn.classList.add('active');
+            
+            // Load the page
+            loadPage(btn.dataset.page);
+        };
+    });
+}
+
+function setupLogoutListeners() {
     const btnLogout = document.getElementById("btnLogout");
     if (btnLogout) {
         btnLogout.onclick = () => {
@@ -375,7 +734,6 @@ export async function dashboardAdmin() {
                 window.logout();
             } else {
                 console.error("❌ window.logout function not found");
-                // Fallback sederhana
                 localStorage.clear();
                 window.location.hash = "#/login";
                 window.location.reload();
@@ -391,44 +749,97 @@ export async function dashboardAdmin() {
                 window.logout();
             } else {
                 console.error("❌ window.logout function not found");
-                // Fallback sederhana
                 localStorage.clear();
                 window.location.hash = "#/login";
                 window.location.reload();
             }
         };
     }
-
-    // Load default page (dashboard dengan statistik)
-    await showDashboardStats();
 }
 
-function setupNavigation() {
-    const menuButtons = document.querySelectorAll('#sidebarMenu button[data-page], #sidebarMenuMobile button[data-page]');
+function setupNotificationEventListeners() {
+    // Desktop notification buttons
+    const viewNotificationsBtn = document.getElementById('viewNotificationsBtn');
+    if (viewNotificationsBtn) {
+        viewNotificationsBtn.addEventListener('click', () => {
+            adminNotifications.showNotificationModal();
+        });
+    }
     
-    menuButtons.forEach(btn => {
-        btn.onclick = () => {
-            // Remove active class from all buttons
-            menuButtons.forEach(item => {
-                item.classList.remove('active');
-            });
+    const toggleNotificationsBtn = document.getElementById('toggleNotificationsBtn');
+    if (toggleNotificationsBtn) {
+        toggleNotificationsBtn.addEventListener('click', async () => {
+            const originalText = toggleNotificationsBtn.innerHTML;
+            toggleNotificationsBtn.disabled = true;
+            toggleNotificationsBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
             
-            // Add active class to clicked button
-            btn.classList.add('active');
+            try {
+                await adminNotifications.toggleNotifications();
+            } finally {
+                toggleNotificationsBtn.disabled = false;
+                toggleNotificationsBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // Mobile notification buttons
+    const viewNotificationsBtnMobile = document.getElementById('viewNotificationsBtnMobile');
+    if (viewNotificationsBtnMobile) {
+        viewNotificationsBtnMobile.addEventListener('click', () => {
+            adminNotifications.showNotificationModal();
+        });
+    }
+    
+    const toggleNotificationsBtnMobile = document.getElementById('toggleNotificationsBtnMobile');
+    if (toggleNotificationsBtnMobile) {
+        toggleNotificationsBtnMobile.addEventListener('click', async () => {
+            const originalText = toggleNotificationsBtnMobile.innerHTML;
+            toggleNotificationsBtnMobile.disabled = true;
+            toggleNotificationsBtnMobile.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
             
-            // Load the page
-            loadPage(btn.dataset.page);
-        };
-    });
+            try {
+                await adminNotifications.toggleNotifications();
+            } finally {
+                toggleNotificationsBtnMobile.disabled = false;
+                toggleNotificationsBtnMobile.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // Alert button
+    const enableNotificationsAlert = document.getElementById('enableNotificationsAlert');
+    if (enableNotificationsAlert) {
+        enableNotificationsAlert.addEventListener('click', async () => {
+            await adminNotifications.enableNotifications();
+            const alertElement = document.getElementById('notification-alert');
+            if (alertElement) {
+                alertElement.classList.add('d-none');
+            }
+        });
+    }
+    
+    // Notification bell click
+    const notificationBell = document.getElementById('notification-bell');
+    if (notificationBell) {
+        notificationBell.addEventListener('click', async () => {
+            await adminNotifications.updateUnreadNotificationsCount();
+        });
+    }
+    
+    const notificationBellMobile = document.getElementById('notification-bell-mobile');
+    if (notificationBellMobile) {
+        notificationBellMobile.addEventListener('click', async () => {
+            await adminNotifications.updateUnreadNotificationsCount();
+        });
+    }
 }
 
-// ==================== HAPUS FUNGSI handleLogout() LAMA ====================
-// Hapus atau komentari fungsi ini karena kita menggunakan window.logout
-/*
-function handleLogout() {
-    // ... fungsi lama dihapus ...
+function updateLastCheckTime() {
+    const lastCheckElement = document.getElementById('last-notification-check');
+    if (lastCheckElement) {
+        lastCheckElement.textContent = new Date().toLocaleTimeString('id-ID');
+    }
 }
-*/
 
 async function loadPage(page) {
     const mainContent = document.getElementById("mainContent");
@@ -441,6 +852,7 @@ async function loadPage(page) {
         'tim': '<i class="bi bi-truck me-2"></i>Tim Pengangkut',
         'anggota': '<i class="bi bi-people-fill me-2"></i>Anggota',
         'tamu': '<i class="bi bi-person-plus me-2"></i>Tamu',
+        'notifications': '<i class="bi bi-bell me-2"></i>Manajemen Notifikasi',
         'jadwal': '<i class="bi bi-calendar-check me-2"></i>Jadwal Pengangkutan',
         'detailJadwal': '<i class="bi bi-calendar-week me-2"></i>Detail Jadwal Anggota',
         'pembayaran': '<i class="bi bi-cash-stack me-2"></i>Pembayaran',
@@ -474,6 +886,12 @@ async function loadPage(page) {
             case 'tamu':
                 await tamuAdminPage();
                 break;
+            case 'notifications':
+                await notificationAdminPage();
+                break;
+            case 'push-subscriptions':
+                await pushSubscriptionAdminPage();
+                break;
             case 'jadwal':
                 await jadwalAdminPage();
                 break;
@@ -494,13 +912,13 @@ async function loadPage(page) {
                 break;
             default:
                 mainContent.innerHTML = `
-                    <div class="card">
+                    <div class="card animate-fadeInUp">
                         <div class="card-body text-center py-5">
                             <h4 class="text-danger">
                                 <i class="bi bi-exclamation-triangle me-2"></i>Halaman tidak ditemukan
                             </h4>
                             <p class="text-muted">Halaman ${page} tidak tersedia</p>
-                            <button onclick="loadPage('dashboard')" class="btn btn-success">
+                            <button onclick="loadPage('dashboard')" class="btn btn-success mt-3">
                                 <i class="bi bi-house me-1"></i> Kembali ke Dashboard
                             </button>
                         </div>
@@ -510,14 +928,14 @@ async function loadPage(page) {
     } catch (error) {
         console.error('Error loading page:', error);
         mainContent.innerHTML = `
-            <div class="card border-danger">
+            <div class="card border-danger animate-fadeInUp">
                 <div class="card-body text-center py-5">
                     <div class="text-danger mb-3">
                         <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem;"></i>
                     </div>
                     <h4 class="text-danger">Terjadi Kesalahan</h4>
                     <p class="text-muted">Gagal memuat halaman: ${error.message}</p>
-                    <button onclick="location.reload()" class="btn btn-outline-success">
+                    <button onclick="location.reload()" class="btn btn-outline-success mt-3">
                         <i class="bi bi-arrow-clockwise me-1"></i> Coba Lagi
                     </button>
                 </div>
@@ -711,9 +1129,9 @@ function formatTimeAgo(dateString) {
 async function showDashboardStats() {
     const mainContent = document.getElementById("mainContent");
     
-    // Show loading dengan animasi
+    // Show loading
     mainContent.innerHTML = `
-        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+        <div class="d-flex flex-column align-items-center justify-content-center py-5 animate-fadeInUp">
             <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
                 <span class="visually-hidden">Loading...</span>
             </div>
@@ -722,13 +1140,11 @@ async function showDashboardStats() {
     `;
     
     try {
-        // Fetch semua data sekaligus
         const [stats, trendData] = await Promise.all([
             fetchDashboardStats(),
             fetchTrendData()
         ]);
         
-        // Format angka dengan locale Indonesia
         const formatRupiah = (number) => {
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -738,7 +1154,7 @@ async function showDashboardStats() {
         };
         
         mainContent.innerHTML = `
-            <div class="dashboard-stats">
+            <div class="animate-fadeInUp">
                 <!-- Header -->
                 <div class="mb-4">
                     <h3 class="text-success fw-bold">📊 Dashboard Utama</h3>
@@ -748,146 +1164,113 @@ async function showDashboardStats() {
                     </small>
                 </div>
                 
-                <!-- Alert Cards -->
-                ${stats.alerts && stats.alerts.length > 0 ? renderAlertCards(stats) : ''}
-                
-                <!-- Stats Cards - PERBAIKAN: 2 baris × 3 kolom -->
+                <!-- Stats Cards Grid (2 rows × 3 columns) -->
                 <div class="row g-3 mb-4">
-                    <!-- Baris 1 -->
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
+                    <!-- Row 1 -->
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-success h-100 shadow-sm border-0">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-success bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-people-fill text-success fs-3"></i>
+                                    <div class="stats-icon bg-success bg-opacity-10 text-success me-3">
+                                        <i class="bi bi-people-fill"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Total Users</h6>
-                                        <h3 class="card-title text-success fw-bold mb-2">${stats.totalUsers ? stats.totalUsers.toLocaleString() : '0'}</h3>
-                                        <small class="text-muted d-block text-truncate">Semua pengguna terdaftar</small>
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Total Users</h6>
+                                        <h3 class="text-success fw-bold mb-2">${stats.totalUsers.toLocaleString()}</h3>
+                                        <small class="text-muted">Semua pengguna terdaftar</small>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>Total semua role
-                                </small>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-primary h-100 shadow-sm border-0">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-person-check-fill text-primary fs-3"></i>
+                                    <div class="stats-icon bg-primary bg-opacity-10 text-primary me-3">
+                                        <i class="bi bi-person-check-fill"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Anggota Aktif</h6>
-                                        <h3 class="card-title text-primary fw-bold mb-2">${stats.anggotaAktif ? stats.anggotaAktif.toLocaleString() : '0'}</h3>
-                                        <small class="text-muted d-block text-truncate">
-                                            ${stats.totalUsers && stats.totalUsers > 0 ? 
-                                                `${((stats.anggotaAktif / stats.totalUsers) * 100 || 0).toFixed(1)}% dari total` : 
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Anggota Aktif</h6>
+                                        <h3 class="text-primary fw-bold mb-2">${stats.anggotaAktif.toLocaleString()}</h3>
+                                        <small class="text-muted">
+                                            ${stats.totalUsers > 0 ? 
+                                                `${((stats.anggotaAktif / stats.totalUsers) * 100).toFixed(1)}% dari total` : 
                                                 '0% dari total'
                                             }
                                         </small>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-check-circle me-1"></i>Status aktif
-                                </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-warning h-100 shadow-sm border-0">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="stats-icon bg-warning bg-opacity-10 text-warning me-3">
+                                        <i class="bi bi-truck"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Tim Pengangkut</h6>
+                                        <h3 class="text-warning fw-bold mb-2">1</h3>
+                      Export Laporan                  <small class="text-muted">Tim aktif hari ini</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
+                    <!-- Row 2 -->
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-info h-100 shadow-sm border-0">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-warning bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-truck text-warning fs-3"></i>
+                                    <div class="stats-icon bg-info bg-opacity-10 text-info me-3">
+                                        <i class="bi bi-cash-coin"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Tim Pengangkut</h6>
-                                        <h3 class="card-title text-warning fw-bold mb-2">${stats.totalTim ? stats.totalTim.toLocaleString() : '0'}</h3>
-                                        <small class="text-muted d-block text-truncate">Tim aktif hari ini</small>
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Pembayaran Bulan Ini</h6>
+                                        <h3 class="text-info fw-bold mb-2">${formatRupiah(stats.totalPembayaranBulanIni)}</h3>
+                                        <small class="text-muted">Status lunas</small>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-clock me-1"></i>Status operasional
-                                </small>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Baris 2 -->
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-danger h-100 shadow-sm border-0">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-info bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-cash-coin text-info fs-3"></i>
+                                    <div class="stats-icon bg-danger bg-opacity-10 text-danger me-3">
+                                        <i class="bi bi-trash"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Pembayaran Bulan Ini</h6>
-                                        <h3 class="card-title text-info fw-bold mb-2">${formatRupiah(stats.totalPembayaranBulanIni || 0)}</h3>
-                                        <small class="text-muted d-block text-truncate">Status lunas</small>
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Laporan Sampah</h6>
+                                        <h3 class="text-danger fw-bold mb-2">${stats.totalLaporan.toLocaleString()}</h3>
+                                        <small class="text-muted">Total semua laporan</small>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar-month me-1"></i>Bulan berjalan
-                                </small>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <div class="card stats-card stats-card-secondary h-100 shadow-sm border-0">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-danger bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-trash text-danger fs-3"></i>
+                                    <div class="stats-icon bg-secondary bg-opacity-10 text-secondary me-3">
+                                        <i class="bi bi-calendar-check"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Laporan Sampah</h6>
-                                        <h3 class="card-title text-danger fw-bold mb-2">${stats.totalLaporan ? stats.totalLaporan.toLocaleString() : '0'}</h3>
-                                        <small class="text-muted d-block text-truncate">Total semua laporan</small>
+                                        <h6 class="text-muted text-uppercase small fw-semibold mb-2">Jadwal Hari Ini</h6>
+                                        <h3 class="text-secondary fw-bold mb-2">${stats.jadwalHariIni.toLocaleString()}</h3>
+                                        <small class="text-muted">Pengangkutan terjadwal</small>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-clipboard-data me-1"></i>Semua periode
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                        <div class="card h-100 border-0 shadow-sm hover-card">
-                            <div class="card-body p-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-secondary bg-opacity-10 p-3 rounded me-3 flex-shrink-0">
-                                        <i class="bi bi-calendar-check text-secondary fs-3"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="card-subtitle text-muted mb-2 text-truncate">Jadwal Hari Ini</h6>
-                                        <h3 class="card-title text-secondary fw-bold mb-2">${stats.jadwalHariIni ? stats.jadwalHariIni.toLocaleString() : '0'}</h3>
-                                        <small class="text-muted d-block text-truncate">Pengangkutan terjadwal</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 px-4">
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar-day me-1"></i>${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                </small>
                             </div>
                         </div>
                     </div>
@@ -900,8 +1283,8 @@ async function showDashboardStats() {
                         <div class="row g-4">
                             <!-- Trend Chart -->
                             <div class="col-12">
-                                <div class="card h-100">
-                                    <div class="card-header bg-success bg-opacity-10">
+                                <div class="card h-100 shadow-sm border-0">
+                                    <div class="card-header bg-success bg-opacity-10 border-0">
                                         <h5 class="card-title mb-0">
                                             <i class="bi bi-graph-up me-2"></i>Trend Laporan 7 Hari Terakhir
                                         </h5>
@@ -914,14 +1297,14 @@ async function showDashboardStats() {
                             
                             <!-- User Distribution Chart -->
                             <div class="col-12">
-                                <div class="card h-100">
-                                    <div class="card-header bg-primary bg-opacity-10">
+                                <div class="card h-100 shadow-sm border-0">
+                                    <div class="card-header bg-primary bg-opacity-10 border-0">
                                         <h5 class="card-title mb-0">
                                             <i class="bi bi-pie-chart me-2"></i>Distribusi User per Role
                                         </h5>
                                     </div>
                                     <div class="card-body">
-                                        ${renderUserChart(stats.userRoles || {})}
+                                        ${renderUserChart(stats.userRoles)}
                                     </div>
                                 </div>
                             </div>
@@ -930,8 +1313,8 @@ async function showDashboardStats() {
                     
                     <!-- Activity Column -->
                     <div class="col-lg-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-header bg-warning bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="bi bi-activity me-2"></i>Aktivitas Terbaru
                                 </h5>
@@ -939,17 +1322,17 @@ async function showDashboardStats() {
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </button>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
-                                    ${stats.recentActivities && stats.recentActivities.length > 0 ? 
+                            <div class="card-body p-0 custom-scrollbar" style="max-height: 400px;">
+                                <div class="list-group list-group-flush">
+                                    ${stats.recentActivities.length > 0 ? 
                                         stats.recentActivities.map(activity => `
-                                            <div class="list-group-item border-0">
+                                            <div class="list-group-item activity-item border-0">
                                                 <div class="d-flex align-items-start">
                                                     <div class="me-3">
                                                         <span class="fs-5">${activity.icon}</span>
                                                     </div>
                                                     <div class="flex-grow-1">
-                                                        <h6 class="mb-1">${activity.title}</h6>
+                                                        <h6 class="mb-1 fw-semibold">${activity.title}</h6>
                                                         <p class="mb-1 text-muted small">${activity.desc}</p>
                                                     </div>
                                                     <small class="text-muted">${activity.time}</small>
@@ -964,28 +1347,28 @@ async function showDashboardStats() {
                                 </div>
                             </div>
                             
-                            <div class="card-footer bg-transparent">
+                            <div class="card-footer bg-transparent border-0">
                                 <h6 class="mb-3">
                                     <i class="bi bi-lightning-fill me-2 text-success"></i>Aksi Cepat
                                 </h6>
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <button class="btn btn-outline-success w-100" data-page="users">
+                                        <button class="btn btn-outline-success w-100 quick-action-btn" data-page="users">
                                             <i class="bi bi-person-plus me-1"></i>Tambah User
                                         </button>
                                     </div>
                                     <div class="col-6">
-                                        <button class="btn btn-outline-primary w-100" data-page="jadwal">
+                                        <button class="btn btn-outline-primary w-100 quick-action-btn" data-page="jadwal">
                                             <i class="bi bi-calendar-plus me-1"></i>Buat Jadwal
                                         </button>
                                     </div>
                                     <div class="col-6">
-                                        <button class="btn btn-outline-warning w-100" data-page="reports">
+                                        <button class="btn btn-outline-warning w-100 quick-action-btn" data-page="reports">
                                             <i class="bi bi-file-earmark-text me-1"></i>Lihat Laporan
                                         </button>
                                     </div>
                                     <div class="col-6">
-                                        <button class="btn btn-outline-info w-100" id="refreshDashboard">
+                                        <button class="btn btn-outline-info w-100 quick-action-btn" id="refreshDashboard">
                                             <i class="bi bi-arrow-repeat me-1"></i>Refresh
                                         </button>
                                     </div>
@@ -997,16 +1380,16 @@ async function showDashboardStats() {
             </div>
         `;
 
-        // ===== TEMPATKAN EVENT LISTENERS DI SINI (SETELAH HTML DI-RENDER) =====
+        // Add event listeners
         setTimeout(() => {
-            // Event listeners untuk aksi cepat
-            document.querySelectorAll('.card-footer button[data-page]').forEach(btn => {
+            // Quick action buttons
+            document.querySelectorAll('.quick-action-btn[data-page]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     loadPage(btn.getAttribute('data-page'));
                 });
             });
             
-            // Refresh dashboard button
+            // Refresh buttons
             const refreshBtn = document.getElementById('refreshDashboard');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', () => {
@@ -1014,7 +1397,6 @@ async function showDashboardStats() {
                 });
             }
             
-            // Refresh activity button
             const refreshActivityBtn = document.getElementById('refreshActivity');
             if (refreshActivityBtn) {
                 refreshActivityBtn.addEventListener('click', () => {
@@ -1026,14 +1408,14 @@ async function showDashboardStats() {
     } catch (error) {
         console.error('Error showing dashboard:', error);
         mainContent.innerHTML = `
-            <div class="card border-danger">
+            <div class="card border-danger animate-fadeInUp">
                 <div class="card-body text-center py-5">
                     <div class="text-danger mb-3">
                         <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem;"></i>
                     </div>
                     <h4 class="text-danger">Gagal Memuat Dashboard</h4>
                     <p class="text-muted">${error.message || 'Terjadi kesalahan saat mengambil data'}</p>
-                    <button onclick="showDashboardStats()" class="btn btn-success">
+                    <button onclick="showDashboardStats()" class="btn btn-success mt-3">
                         <i class="bi bi-arrow-clockwise me-1"></i> Coba Lagi
                     </button>
                 </div>
@@ -1042,86 +1424,12 @@ async function showDashboardStats() {
     }
 }
 
-// ==================== HELPER FUNCTIONS ====================
-
-function renderAlertCards(stats) {
-    const alerts = [];
-    
-    // Aturan alert
-    if (stats.laporanStatus['pending'] > 10) {
-        alerts.push({
-            type: 'danger',
-            icon: 'bi-exclamation-triangle-fill',
-            title: 'Laporan Menumpuk',
-            message: `${stats.laporanStatus['pending']} laporan masih pending (>10)`,
-            action: 'loadPage("laporan")'
-        });
-    }
-    
-    if (stats.jadwalHariIni === 0) {
-        alerts.push({
-            type: 'warning',
-            icon: 'bi-calendar-x',
-            title: 'Tidak Ada Jadwal',
-            message: 'Tidak ada jadwal pengangkutan hari ini',
-            action: 'loadPage("jadwal")'
-        });
-    }
-    
-    if (stats.totalPembayaranBulanIni < 50000) {
-        alerts.push({
-            type: 'info',
-            icon: 'bi-cash-coin',
-            title: 'Pembayaran Rendah',
-            message: 'Pembayaran bulan ini masih rendah',
-            action: 'loadPage("pembayaran")'
-        });
-    }
-    
-    if (stats.anggotaAktif === 0) {
-        alerts.push({
-            type: 'warning',
-            icon: 'bi-people',
-            title: 'Tidak Ada Anggota Aktif',
-            message: 'Semua anggota status non-aktif',
-            action: 'loadPage("anggota")'
-        });
-    }
-    
-    if (alerts.length === 0) {
-        return `
-            <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
-                <i class="bi bi-check-circle-fill fs-4 me-3"></i>
-                <div>
-                    <strong>Semua Sistem Normal</strong>
-                    <div class="small">Tidak ada masalah kritis yang terdeteksi</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    return alerts.map(alert => `
-        <div class="alert alert-${alert.type} d-flex align-items-center justify-content-between mb-3" role="alert" 
-             style="cursor: pointer;" onclick="${alert.action}">
-            <div class="d-flex align-items-center">
-                <i class="bi ${alert.icon} fs-4 me-3"></i>
-                <div>
-                    <strong>${alert.title}</strong>
-                    <div class="small">${alert.message}</div>
-                </div>
-            </div>
-            <i class="bi bi-chevron-right"></i>
-        </div>
-    `).join('');
-}
-
 function renderTrendChart(trendData) {
-    // Data dummy untuk contoh
-    const data = [0, 3, 2, 0, 0, 0, 0];
+    // Generate dummy data for example
     const labels = ["12/07", "12/08", "12/09", "12/10", "12/11", "12/12", "12/13"];
+    const data = [0, 3, 2, 0, 0, 0, 0];
+    const colors = ['#198754', '#28a745', '#20c997', '#17a2b8', '#007bff', '#6f42c1', '#e83e8c'];
     
-    const total = data.reduce((sum, value) => sum + value, 0);
-    const average = (total / data.length).toFixed(1);
     const maxValue = Math.max(...data, 1);
     
     return `
@@ -1129,11 +1437,11 @@ function renderTrendChart(trendData) {
             <div class="d-flex justify-content-between mb-4">
                 <div>
                     <h6 class="text-muted mb-1">Total Laporan</h6>
-                    <h3 class="text-success fw-bold">${total}</h3>
+                    <h3 class="text-success fw-bold">${data.reduce((a, b) => a + b, 0)}</h3>
                 </div>
                 <div>
                     <h6 class="text-muted mb-1">Rata-rata/hari</h6>
-                    <h3 class="text-primary fw-bold">${average}</h3>
+                    <h3 class="text-primary fw-bold">${(data.reduce((a, b) => a + b, 0) / data.length).toFixed(1)}</h3>
                 </div>
                 <div>
                     <h6 class="text-muted mb-1">Puncak</h6>
@@ -1141,47 +1449,27 @@ function renderTrendChart(trendData) {
                 </div>
             </div>
             
-            <div class="trend-chart-container">
-                <div class="d-flex align-items-end justify-content-between" style="height: 200px;">
-                    ${data.map((value, index) => {
-                        const height = value === 0 ? 10 : (value / maxValue * 100);
-                        const isToday = labels[index] === "12/13";
-                        const barColor = value === 0 ? "#e0e0e0" : 
-                                        value >= 3 ? "#f44336" : 
-                                        value >= 2 ? "#ff9800" : "#4caf50";
-                        
-                        return `
-                            <div class="d-flex flex-column align-items-center" style="width: 14%;">
-                                <div class="position-relative mb-2">
-                                    <div class="trend-bar ${isToday ? 'border border-2 border-success' : ''}" 
-                                         style="height: ${height}px; background-color: ${barColor}; width: 40px; border-radius: 4px 4px 0 0;"
-                                         data-bs-toggle="tooltip" data-bs-placement="top" 
-                                         title="${labels[index]}: ${value} laporan">
-                                    </div>
-                                    <div class="position-absolute top-0 start-50 translate-middle-x mt-1" style="font-size: 12px; font-weight: bold;">
-                                        ${value}
-                                    </div>
+            <div class="d-flex align-items-end justify-content-between" style="height: 180px;">
+                ${data.map((value, index) => {
+                    const height = value === 0 ? 10 : (value / maxValue * 100);
+                    const barColor = value === 0 ? '#e9ecef' : colors[index];
+                    const isToday = labels[index] === "12/13";
+                    
+                    return `
+                        <div class="d-flex flex-column align-items-center" style="width: 14%;">
+                            <div class="position-relative mb-2">
+                                <div class="trend-bar rounded-top ${isToday ? 'border border-2 border-success shadow-sm' : ''}" 
+                                     style="height: ${height}px; background-color: ${barColor}; width: 35px;"
+                                     data-bs-toggle="tooltip" title="${labels[index]}: ${value} laporan">
                                 </div>
-                                <small class="text-muted">${labels[index]}</small>
+                                <div class="position-absolute top-0 start-50 translate-middle-x mt-1 small fw-bold">
+                                    ${value}
+                                </div>
                             </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-            
-            <div class="mt-4 pt-3 border-top">
-                <div class="row">
-                    <div class="col-6">
-                        <small class="text-muted">
-                            <i class="bi bi-graph-up me-1"></i>Puncak: ${maxValue} laporan pada ${labels[data.indexOf(maxValue)]}
-                        </small>
-                    </div>
-                    <div class="col-6 text-end">
-                        <small class="text-muted">
-                            <i class="bi bi-graph-down me-1"></i>${data.filter(val => val === 0).length} hari tanpa laporan
-                        </small>
-                    </div>
-                </div>
+                            <small class="text-muted">${labels[index]}</small>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -1190,6 +1478,7 @@ function renderTrendChart(trendData) {
 function renderUserChart(userRoles) {
     const roles = Object.keys(userRoles);
     const counts = Object.values(userRoles);
+    const total = counts.reduce((a, b) => a + b, 0);
     
     if (roles.length === 0) {
         return `
@@ -1200,14 +1489,11 @@ function renderUserChart(userRoles) {
         `;
     }
     
-    const total = counts.reduce((a, b) => a + b, 0);
-    
-    // Colors for different roles
     const roleColors = {
-        'admin': '#198754', // green
-        'anggota': '#0d6efd', // blue
-        'tamu': '#fd7e14', // orange
-        'tim_angkut': '#6f42c1' // purple
+        'admin': '#198754',
+        'anggota': '#0d6efd',
+        'tamu': '#fd7e14',
+        'tim_angkut': '#6f42c1'
     };
     
     return `
@@ -1224,12 +1510,12 @@ function renderUserChart(userRoles) {
                     
                     return `
                         <div class="col-6 mb-3">
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center mb-1">
                                 <div class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: ${color};"></div>
                                 <span class="fw-semibold">${roleName}</span>
                                 <span class="ms-auto fw-bold">${count}</span>
                             </div>
-                            <div class="progress mt-1" style="height: 8px;">
+                            <div class="progress" style="height: 8px;">
                                 <div class="progress-bar" role="progressbar" 
                                      style="width: ${percentage}%; background-color: ${color};" 
                                      aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
@@ -1256,7 +1542,6 @@ async function fetchTrendData() {
         const laporanRes = await fetch(API.laporanSampah, { headers: getAuthHeaders() });
         const laporan = await laporanRes.json();
         
-        // 7 hari terakhir
         const last7Days = Array.from({length: 7}, (_, i) => {
             const date = new Date();
             date.setDate(date.getDate() - i);
@@ -1264,970 +1549,10 @@ async function fetchTrendData() {
         }).reverse();
         
         return last7Days.map(date => ({
-            date: date.split('-').slice(1).join('/'), // Format: MM/DD
+            date: date.split('-').slice(1).join('/'),
             count: laporan.filter(l => l.tanggal_lapor === date).length
         }));
     } catch {
         return Array.from({length: 7}, (_, i) => ({ date: '0', count: 0 }));
     }
-}
-
-function addDashboardStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Custom Dashboard Styles */
-        :root {
-            --bs-success: #198754;
-            --bs-success-rgb: 25, 135, 84;
-            --bs-success-bg-subtle: #d1e7dd;
-            --bs-primary: #0d6efd;
-            --bs-warning: #ffc107;
-            --bs-info: #0dcaf0;
-            --bs-danger: #dc3545;
-            --bs-secondary: #6c757d;
-            --bs-light: #f8f9fa;
-            --bs-dark: #212529;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background-color: #f8f9fa;
-            overflow-x: hidden;
-        }
-        
-        /* Sidebar Customizations */
-        .sidebar {
-            background: linear-gradient(180deg, #198754 0%, #146c43 100%);
-            box-shadow: 3px 0 15px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.85);
-            border-radius: 8px;
-            margin: 2px 0;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 500;
-        }
-        
-        .sidebar .nav-link:hover {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.15);
-            transform: translateX(8px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .sidebar .nav-link.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.25);
-            font-weight: 600;
-            border-left: 4px solid #ffc107;
-        }
-        
-        .sidebar .nav-link i {
-            width: 24px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
-        
-        /* GRID LAYOUT UNTUK 6 CARDS (2 BARIS × 3 KOLOM) */
-        .stats-grid-2x3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-            margin: 1.5rem 0;
-        }
-
-        /* Responsive breakpoints untuk 2x3 grid */
-        @media (max-width: 1200px) {
-            .stats-grid-2x3 {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid-2x3 {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-        }
-
-        /* Card styling untuk grid 2x3 */
-        .stats-card-grid {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            min-height: 130px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stats-card-grid:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .stats-card-grid::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 6px;
-            height: 100%;
-        }
-
-        /* Warna border untuk setiap card dalam grid */
-        .stats-card-grid:nth-child(1)::before { background: linear-gradient(to bottom, #198754, #2ecc71); }
-        .stats-card-grid:nth-child(2)::before { background: linear-gradient(to bottom, #0d6efd, #3498db); }
-        .stats-card-grid:nth-child(3)::before { background: linear-gradient(to bottom, #ffc107, #f39c12); }
-        .stats-card-grid:nth-child(4)::before { background: linear-gradient(to bottom, #0dcaf0, #1abc9c); }
-        .stats-card-grid:nth-child(5)::before { background: linear-gradient(to bottom, #dc3545, #e74c3c); }
-        .stats-card-grid:nth-child(6)::before { background: linear-gradient(to bottom, #6c757d, #7f8c8d); }
-
-        /* Card content dalam grid */
-        .stats-card-content {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            width: 100%;
-        }
-
-        .stats-card-icon {
-            width: 70px;
-            height: 70px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: white;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .stats-card-icon.bg-success { background: linear-gradient(135deg, #198754, #2ecc71); }
-        .stats-card-icon.bg-primary { background: linear-gradient(135deg, #0d6efd, #3498db); }
-        .stats-card-icon.bg-warning { background: linear-gradient(135deg, #ffc107, #f39c12); }
-        .stats-card-icon.bg-info { background: linear-gradient(135deg, #0dcaf0, #1abc9c); }
-        .stats-card-icon.bg-danger { background: linear-gradient(135deg, #dc3545, #e74c3c); }
-        .stats-card-icon.bg-secondary { background: linear-gradient(135deg, #6c757d, #7f8c8d); }
-
-        .stats-card-text {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .stats-card-title {
-            margin: 0 0 0.5rem 0;
-            font-size: 0.875rem;
-            color: #6c757d;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .stats-card-value {
-            font-size: 2.25rem;
-            font-weight: 800;
-            color: #2c3e50;
-            margin: 0 0 0.25rem 0;
-            line-height: 1.2;
-        }
-
-        .stats-card-desc {
-            font-size: 0.875rem;
-            color: #7f8c8d;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Responsive untuk grid cards */
-        @media (max-width: 992px) {
-            .stats-card-grid {
-                padding: 1.25rem;
-                gap: 1rem;
-                min-height: 120px;
-            }
-            
-            .stats-card-icon {
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
-            
-            .stats-card-value {
-                font-size: 2rem;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .stats-card-grid {
-                padding: 1rem;
-                flex-direction: column;
-                text-align: center;
-                gap: 0.75rem;
-                min-height: auto;
-            }
-            
-            .stats-card-content {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .stats-card-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 24px;
-            }
-            
-            .stats-card-value {
-                font-size: 1.75rem;
-            }
-            
-            .stats-card-title {
-                font-size: 0.8125rem;
-            }
-            
-            .stats-card-desc {
-                font-size: 0.8125rem;
-            }
-        }
-
-        .stat-icon {
-            width: 70px;
-            height: 70px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: white;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .stat-icon.bg-success { background: linear-gradient(135deg, #198754, #2ecc71); }
-        .stat-icon.bg-primary { background: linear-gradient(135deg, #0d6efd, #3498db); }
-        .stat-icon.bg-warning { background: linear-gradient(135deg, #ffc107, #f39c12); }
-        .stat-icon.bg-info { background: linear-gradient(135deg, #0dcaf0, #1abc9c); }
-        .stat-icon.bg-danger { background: linear-gradient(135deg, #dc3545, #e74c3c); }
-        .stat-icon.bg-secondary { background: linear-gradient(135deg, #6c757d, #7f8c8d); }
-        
-        .stat-info {
-            flex: 1;
-            min-width: 0; /* Penting untuk text-truncate */
-        }
-        
-        .stat-info h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 0.875rem;
-            color: #6c757d;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .stat-number {
-            font-size: 2.25rem;
-            font-weight: 800;
-            color: #2c3e50;
-            margin: 0 0 0.25rem 0;
-            line-height: 1.2;
-        }
-        
-        .stat-desc {
-            font-size: 0.875rem;
-            color: #7f8c8d;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        /* Card Customizations untuk konten lainnya */
-        .card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
-        }
-        
-        .card-header {
-            border-radius: 16px 16px 0 0 !important;
-            border-bottom: none;
-            padding: 1.25rem 1.5rem;
-            background: linear-gradient(135deg, #19875415, #146c4310);
-        }
-        
-        .card-header h5 {
-            margin: 0;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-        
-        /* Trend Chart Styling */
-        .trend-chart-container {
-            padding: 1rem 0;
-        }
-        
-        .trend-bars-container {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            height: 200px;
-            padding: 0 1rem;
-            margin: 2rem 0;
-        }
-        
-        .trend-bar-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100%;
-            max-width: 60px;
-            margin: 0 0.5rem;
-        }
-        
-        .trend-bar-wrapper {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            align-items: flex-end;
-            position: relative;
-        }
-        
-        .trend-bar {
-            width: 40px;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.3s ease;
-            position: relative;
-            min-height: 10px;
-            margin: 0 auto;
-        }
-        
-        .trend-bar:hover {
-            opacity: 0.9;
-            transform: scaleY(1.1);
-        }
-        
-        .trend-bar.today {
-            border: 2px solid white;
-            box-shadow: 0 0 0 2px var(--bs-success);
-        }
-        
-        .bar-value {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: #2c3e50;
-            white-space: nowrap;
-        }
-        
-        .trend-label {
-            margin-top: 0.75rem;
-            font-size: 0.875rem;
-            color: #6c757d;
-            font-weight: 500;
-            text-align: center;
-        }
-        
-        /* Scrollbar Styling */
-        .list-group {
-            scrollbar-width: thin;
-            scrollbar-color: var(--bs-success) transparent;
-        }
-        
-        .list-group::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .list-group::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 4px;
-        }
-        
-        .list-group::-webkit-scrollbar-thumb {
-            background-color: var(--bs-success);
-            border-radius: 4px;
-            border: 2px solid transparent;
-            background-clip: padding-box;
-        }
-        
-        .list-group::-webkit-scrollbar-thumb:hover {
-            background-color: #146c43;
-        }
-        
-        /* Activity List */
-        .activity-list {
-            max-height: 350px;
-            overflow-y: auto;
-        }
-        
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-        
-        .activity-item:hover {
-            background-color: rgba(25, 135, 84, 0.05);
-            transform: translateX(5px);
-        }
-        
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-        
-        .activity-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #19875415, #146c4310);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            color: var(--bs-success);
-            margin-right: 1rem;
-            flex-shrink: 0;
-        }
-        
-        .activity-content {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .activity-content p {
-            margin: 0 0 0.25rem 0;
-            font-weight: 600;
-            color: #2c3e50;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .activity-content small {
-            color: #6c757d;
-            font-size: 0.875rem;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .activity-time {
-            margin-left: 1rem;
-            font-size: 0.75rem;
-            color: #95a5a6;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-        
-        /* Quick Actions */
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.75rem;
-        }
-        
-        .action-btn {
-            background: white;
-            border: 2px solid rgba(25, 135, 84, 0.1);
-            color: #198754;
-            padding: 0.875rem 1rem;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            font-size: 0.875rem;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        .action-btn:hover {
-            background: linear-gradient(135deg, #198754, #146c43);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(25, 135, 84, 0.2);
-            border-color: transparent;
-        }
-        
-        /* Alert Styling */
-        .alert-container {
-            margin: 1.5rem 0;
-        }
-        
-        .alert-card {
-            display: flex;
-            align-items: center;
-            padding: 1.25rem;
-            border-radius: 12px;
-            margin-bottom: 0.75rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-left: 5px solid;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        
-        .alert-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .alert-danger {
-            border-left-color: #dc3545;
-            background: linear-gradient(to right, #ffebee, white);
-        }
-        
-        .alert-warning {
-            border-left-color: #ffc107;
-            background: linear-gradient(to right, #fff3e0, white);
-        }
-        
-        .alert-info {
-            border-left-color: #0dcaf0;
-            background: linear-gradient(to right, #e3f2fd, white);
-        }
-        
-        .alert-success {
-            border-left-color: #198754;
-            background: linear-gradient(to right, #e8f5e9, white);
-        }
-        
-        .alert-icon {
-            font-size: 1.75rem;
-            margin-right: 1rem;
-            flex-shrink: 0;
-        }
-        
-        .alert-content {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .alert-content strong {
-            display: block;
-            margin-bottom: 0.25rem;
-            color: #2c3e50;
-            font-weight: 700;
-        }
-        
-        .alert-content small {
-            font-size: 0.875rem;
-            color: #6c757d;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .alert-action {
-            font-size: 1.5rem;
-            color: #95a5a6;
-            margin-left: 1rem;
-            flex-shrink: 0;
-        }
-        
-        /* Progress Bar Custom */
-        .progress-container {
-            height: 10px;
-            background-color: rgba(0, 0, 0, 0.05);
-            border-radius: 5px;
-            overflow: hidden;
-            margin: 0.5rem 0;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            border-radius: 5px;
-            transition: width 0.6s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: linear-gradient(
-                45deg,
-                rgba(255, 255, 255, 0.15) 25%,
-                transparent 25%,
-                transparent 50%,
-                rgba(255, 255, 255, 0.15) 50%,
-                rgba(255, 255, 255, 0.15) 75%,
-                transparent 75%,
-                transparent
-            );
-            background-size: 1rem 1rem;
-            animation: progress-stripes 1s linear infinite;
-        }
-        
-        @keyframes progress-stripes {
-            from {
-                background-position: 1rem 0;
-            }
-            to {
-                background-position: 0 0;
-            }
-        }
-        
-        /* Button Customizations */
-        .btn-success {
-            background: linear-gradient(135deg, #198754, #146c43);
-            border: none;
-            border-radius: 10px;
-            padding: 0.625rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2);
-        }
-        
-        .btn-success:hover {
-            background: linear-gradient(135deg, #146c43, #115c38);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
-        }
-        
-        .btn-success:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.2);
-        }
-        
-        /* Navbar Customizations */
-        .navbar {
-            padding: 1rem 0;
-            background: white;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-        
-        /* Dashboard Stats Container */
-        .dashboard-stats {
-            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Dashboard Header */
-        .dashboard-header {
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #19875405, #146c4302);
-            border-radius: 16px;
-            border: 1px solid rgba(25, 135, 84, 0.1);
-        }
-        
-        .dashboard-header h2 {
-            color: #2c3e50;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            font-size: 1.75rem;
-        }
-        
-        .dashboard-header p {
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-        
-        .last-update {
-            font-size: 0.875rem;
-            color: #95a5a6;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        /* Grid untuk layout dashboard */
-        .charts-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        
-        @media (max-width: 991px) {
-            .charts-row {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .chart-container {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .chart-container h3 {
-            margin: 0 0 1.5rem 0;
-            color: #2c3e50;
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .chart-placeholder {
-            height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #95a5a6;
-            font-size: 1rem;
-        }
-        
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .stat-card {
-                padding: 1.25rem;
-                gap: 1rem;
-            }
-            
-            .stat-icon {
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
-            
-            .stat-number {
-                font-size: 1.875rem;
-            }
-            
-            .card-body {
-                padding: 1.25rem;
-            }
-            
-            .card-header {
-                padding: 1rem 1.25rem;
-            }
-            
-            .trend-bar {
-                width: 30px;
-            }
-            
-            .charts-row {
-                margin: 1.5rem 0;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .stats-grid {
-                gap: 1rem;
-            }
-            
-            .stat-card {
-                padding: 1rem;
-                flex-direction: column;
-                text-align: center;
-                gap: 0.75rem;
-            }
-            
-            .stat-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 24px;
-            }
-            
-            .stat-number {
-                font-size: 1.75rem;
-            }
-            
-            .stat-info h3 {
-                font-size: 0.8125rem;
-            }
-            
-            .stat-desc {
-                font-size: 0.8125rem;
-            }
-            
-            .actions-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        /* Loading Animation */
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-            color: #198754;
-        }
-        
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(25, 135, 84, 0.1);
-            border-top: 4px solid #198754;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1.5rem;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Error State */
-        .error-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
-        }
-        
-        .retry-btn {
-            background: linear-gradient(135deg, #198754, #146c43);
-            color: white;
-            border: none;
-            padding: 0.875rem 2rem;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 1.5rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2);
-        }
-        
-        .retry-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
-        }
-        
-        /* Utility Classes untuk spacing */
-        .mb-0 { margin-bottom: 0 !important; }
-        .mb-1 { margin-bottom: 0.25rem !important; }
-        .mb-2 { margin-bottom: 0.5rem !important; }
-        .mb-3 { margin-bottom: 1rem !important; }
-        .mb-4 { margin-bottom: 1.5rem !important; }
-        .mb-5 { margin-bottom: 2rem !important; }
-        
-        .mt-0 { margin-top: 0 !important; }
-        .mt-1 { margin-top: 0.25rem !important; }
-        .mt-2 { margin-top: 0.5rem !important; }
-        .mt-3 { margin-top: 1rem !important; }
-        .mt-4 { margin-top: 1.5rem !important; }
-        .mt-5 { margin-top: 2rem !important; }
-        
-        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-        .py-3 { padding-top: 1rem; padding-bottom: 1rem; }
-        .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-        .py-5 { padding-top: 2rem; padding-bottom: 2rem; }
-        
-        /* Typography enhancements */
-        h1, h2, h3, h4, h5, h6 {
-            color: #2c3e50;
-            font-weight: 700;
-        }
-        
-        .text-muted {
-            color: #6c757d !important;
-        }
-        
-        .text-success { color: #198754 !important; }
-        .text-primary { color: #0d6efd !important; }
-        .text-warning { color: #ffc107 !important; }
-        .text-info { color: #0dcaf0 !important; }
-        .text-danger { color: #dc3545 !important; }
-        .text-secondary { color: #6c757d !important; }
-        
-        /* Background colors dengan opacity */
-        .bg-success-bg-subtle { background-color: rgba(25, 135, 84, 0.1) !important; }
-        .bg-primary-bg-subtle { background-color: rgba(13, 110, 253, 0.1) !important; }
-        .bg-warning-bg-subtle { background-color: rgba(255, 193, 7, 0.1) !important; }
-        .bg-info-bg-subtle { background-color: rgba(13, 202, 240, 0.1) !important; }
-        .bg-danger-bg-subtle { background-color: rgba(220, 53, 69, 0.1) !important; }
-        .bg-secondary-bg-subtle { background-color: rgba(108, 117, 125, 0.1) !important; }
-        
-        /* Modern scrollbar untuk seluruh halaman */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 5px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(25, 135, 84, 0.5);
-            border-radius: 5px;
-            transition: background 0.3s ease;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(25, 135, 84, 0.7);
-        }
-        
-        /* Focus styles untuk accessibility */
-        *:focus {
-            outline: 2px solid rgba(25, 135, 84, 0.5);
-            outline-offset: 2px;
-        }
-        
-        *:focus:not(.focus-visible) {
-            outline: none;
-        }
-    `;
-    
-    document.head.appendChild(style);
 }

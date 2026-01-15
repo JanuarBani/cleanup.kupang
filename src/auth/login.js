@@ -1,419 +1,666 @@
 // auth/login.js
-import { API, fetchAPI, getAuthHeaders } from '../api.js';
-import { authGuard } from '../utils/authGuard.js';
+import { API } from '../api.js';
+import { showToast } from '../utils/toast.js';
 
-// =============================
-// PAGE LOGIN
-// =============================
 export function loginPage() {
     console.log("📱 Rendering login page...");
 
     document.getElementById("app").innerHTML = `
-        <div class="login-container" style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <h2 style="text-align: center; color: #333;">Login</h2>
-
-            <form id="loginForm" style="display: flex; flex-direction: column; gap: 15px;">
-                <div>
-                    <label for="username">Username</label>
-                    <input type="text" id="username" required>
-                </div>
-                
-                <div>
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required>
-                </div>
-                
-                <button type="submit">Login</button>
-            </form>
-
-            <div style="text-align:center;margin-top:10px;">
-                <a href="#/register" style="color: #4CAF50; text-decoration: none;">Daftar disini</a>
+        <!-- Bootstrap 5 CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <div class="container-fluid bg-light" style="min-height: 100vh;">
+            <!-- Header dengan tombol kembali -->
+            <div class="container py-3">
+                <button onclick="window.location.hash='#/'" 
+                        class="btn btn-outline-success btn-sm mb-3">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Beranda
+                </button>
             </div>
-
-            <div id="loginMessage" style="margin-top:15px;"></div>
+            
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-md-6 col-lg-5">
+                        <div class="card border-success shadow-lg">
+                            <div class="card-header bg-success text-white text-center py-4">
+                                <h3 class="fw-bold mb-2">
+                                    <i class="bi bi-tree-fill me-2"></i>Login CleanUp
+                                </h3>
+                                <p class="mb-0 opacity-75">Masuk ke akun Anda</p>
+                            </div>
+                            
+                            <div class="card-body p-4">
+                                <form id="loginForm" novalidate>
+                                    <!-- Username -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-person me-2"></i>Username
+                                        </label>
+                                        <input type="text" 
+                                               class="form-control form-control-lg" 
+                                               id="username" 
+                                               name="username"
+                                               placeholder="Masukkan username" 
+                                               minlength="3"
+                                               maxlength="50"
+                                               pattern="^[a-zA-Z0-9_.-]{3,50}$"
+                                               title="Username 3-50 karakter, hanya huruf, angka, underscore, titik, dan dash"
+                                               required>
+                                        <div class="invalid-feedback" id="usernameError">
+                                            Username harus 3-50 karakter dan hanya boleh mengandung huruf, angka, underscore, titik, atau dash
+                                        </div>
+                                        <div class="valid-feedback">
+                                            Username valid
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Password -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-lock me-2"></i>Password
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="password" 
+                                                   class="form-control form-control-lg" 
+                                                   id="password" 
+                                                   name="password"
+                                                   placeholder="Masukkan password" 
+                                                   minlength="6"
+                                                   maxlength="100"
+                                                   pattern="^.{6,}$"
+                                                   title="Password minimal 6 karakter"
+                                                   required>
+                                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="invalid-feedback" id="passwordError">
+                                            Password minimal 6 karakter
+                                        </div>
+                                        <div class="valid-feedback">
+                                            Password valid
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Minimal 6 karakter
+                                        </small>
+                                    </div>
+                                    
+                                    <!-- Checkbox Remember Me -->
+                                    <div class="mb-4 form-check">
+                                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                                        <label class="form-check-label" for="rememberMe">
+                                            Ingat saya di perangkat ini
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Tombol Login -->
+                                    <div class="d-grid mb-4">
+                                        <button type="submit" 
+                                                class="btn btn-success btn-lg fw-bold py-3"
+                                                id="loginBtn">
+                                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                                            Login
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Link Register -->
+                                    <div class="text-center">
+                                        <p class="text-muted mb-2">
+                                            Belum punya akun?
+                                            <a href="#/register" class="text-success fw-semibold text-decoration-none">
+                                                Daftar di sini
+                                            </a>
+                                        </p>
+                                        <a href="#/" class="text-success text-decoration-none small">
+                                            <i class="bi bi-house me-1"></i> Kembali ke Beranda
+                                        </a>
+                                    </div>
+                                </form>
+                                
+                                <!-- Message Area -->
+                                <div id="loginMessage" class="mt-4"></div>
+                                
+                                <!-- Attempt Counter (hidden) -->
+                                <div id="loginAttempts" class="small text-muted text-end mt-2" style="display: none;">
+                                    Percobaan login: <span id="attemptCount">0</span>/5
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer bg-transparent border-top-0 text-center py-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-shield-check me-1"></i>
+                                    Data Anda aman bersama kami
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Info Tambahan -->
+                        <div class="alert alert-info mt-4">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="bi bi-info-circle fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-2">Peran Akun:</h6>
+                                    <p class="mb-1 small"><strong>Tamu:</strong> Lapor sampah & lihat peta</p>
+                                    <p class="mb-1 small"><strong>Anggota:</strong> Angkut sampah rutin</p>
+                                    <p class="mb-1 small"><strong>Tim Angkut:</strong> Petugas pengangkut</p>
+                                    <p class="mb-0 small"><strong>Admin:</strong> Kelola sistem</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 
-    document.getElementById("loginForm").addEventListener("submit", handleLoginSubmit);
-    document.getElementById("username").focus();
+    // Initialize
+    setupLoginForm();
 }
 
-// =============================
-// SUBMIT HANDLER
-// =============================
+function setupLoginForm() {
+    const form = document.getElementById("loginForm");
+    const togglePasswordBtn = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+    
+    // Toggle password visibility
+    if (togglePasswordBtn) {
+        togglePasswordBtn.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+    }
+    
+    // Real-time validation
+    const usernameInput = document.getElementById("username");
+    if (usernameInput) {
+        usernameInput.addEventListener('input', validateUsername);
+        usernameInput.addEventListener('blur', validateUsername);
+    }
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', validatePassword);
+        passwordInput.addEventListener('blur', validatePassword);
+    }
+    
+    // Handle form submission
+    form.addEventListener("submit", handleLoginSubmit);
+    
+    // Auto-focus pada username field
+    document.getElementById("username").focus();
+    
+    // Load login attempts from localStorage
+    updateLoginAttempts();
+    
+    // Load remembered username if exists
+    const rememberedUser = localStorage.getItem('rememberedUser');
+    if (rememberedUser && usernameInput) {
+        usernameInput.value = rememberedUser;
+        validateUsername();
+    }
+}
+
+// Real-time validation functions
+function validateUsername() {
+    const input = document.getElementById("username");
+    const errorDiv = document.getElementById("usernameError");
+    const value = input.value.trim();
+    
+    // Reset
+    input.classList.remove('is-invalid', 'is-valid');
+    
+    if (!value) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Username harus diisi";
+        return false;
+    }
+    
+    if (value.length < 3 || value.length > 50) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Username harus 3-50 karakter";
+        return false;
+    }
+    
+    const usernameRegex = /^[a-zA-Z0-9_.-]{3,50}$/;
+    if (!usernameRegex.test(value)) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Username hanya boleh mengandung huruf, angka, underscore, titik, atau dash";
+        return false;
+    }
+    
+    // Check for common bad patterns
+    if (value.includes(' ')) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Username tidak boleh mengandung spasi";
+        return false;
+    }
+    
+    input.classList.add('is-valid');
+    return true;
+}
+
+function validatePassword() {
+    const input = document.getElementById("password");
+    const errorDiv = document.getElementById("passwordError");
+    const value = input.value;
+    
+    // Reset
+    input.classList.remove('is-invalid', 'is-valid');
+    
+    if (!value) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Password harus diisi";
+        return false;
+    }
+    
+    if (value.length < 6) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Password harus minimal 6 karakter";
+        return false;
+    }
+    
+    if (value.length > 100) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = "Password maksimal 100 karakter";
+        return false;
+    }
+    
+    // Optional: check for very weak passwords
+    // Uncomment if you want to add basic password strength check
+    
+    input.classList.add('is-valid');
+    return true;
+}
+
+// Handle form submission
 async function handleLoginSubmit(event) {
     event.preventDefault();
-
+    
+    // Validate all fields
+    const isUsernameValid = validateUsername();
+    const isPasswordValid = validatePassword();
+    
+    if (!isUsernameValid || !isPasswordValid) {
+        showMessage("Harap perbaiki error di atas sebelum melanjutkan", "error");
+        return;
+    }
+    
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
-
-    showMessage("Memproses login...", "info");
-
-    const btn = event.target.querySelector("button");
-    btn.disabled = true;
-    btn.textContent = "Memproses...";
-
+    const loginBtn = document.getElementById("loginBtn");
+    
+    // Check for excessive login attempts
+    if (isLoginBlocked()) {
+        showMessage("Terlalu banyak percobaan login. Coba lagi nanti.", "error");
+        return;
+    }
+    
+    // Tampilkan loading
+    loginBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        Memproses login...
+    `;
+    loginBtn.disabled = true;
+    
+    // Add to login attempts
+    addLoginAttempt();
+    
     try {
         await login(username, password);
-    } catch (err) {
-        btn.disabled = false;
-        btn.textContent = "Login";
-    }
-}
-
-// =============================
-// LOGIN FUNCTION
-// =============================
-async function login(username, password) {
-    try {
-        // 1. Ambil token
-        const response = await fetch(API.login, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            showMessage(err.detail || "Login gagal!", "error");
-            throw new Error(err.detail);
-        }
-
-        const data = await response.json();
-
-        localStorage.setItem("access", data.access);
-        localStorage.setItem("refresh", data.refresh);
-
-        // 2. Decode user_id dari token
-        const tokenData = JSON.parse(atob(data.access.split(".")[1]));
-        const userId = tokenData.user_id;
-
-        // 3. Fetch data user
-        const userUrl = API.users.replace(/\/$/, '') + `/${userId}/`;
-        const userRes = await fetch(userUrl, {
-            headers: { "Authorization": `Bearer ${data.access}` }
-        });
-
-        const userData = await userRes.json();
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        showMessage(`Login berhasil! Selamat datang ${userData.username} (${userData.role})`, "success");
-
-        // 4. Ambil idAnggota lalu simpan
-        try {
-            await loadAnggotaId();
-        } catch (anggotaError) {
-            console.warn("⚠ Tidak bisa load data anggota:", anggotaError);
-            console.log("ℹ Login tetap berhasil, user bisa daftar anggota nanti");
-        }
+        // Reset login attempts on success
+        resetLoginAttempts();
+    } catch (error) {
+        // Reset button
+        loginBtn.innerHTML = `
+            <i class="bi bi-box-arrow-in-right me-2"></i>
+            Login
+        `;
+        loginBtn.disabled = false;
         
-        // 5. Tampilkan pesan sukses
-        const roleMsg = userData.role === 'anggota' ? ' (Anggota)' : '';
-        showMessage(`Login berhasil! Selamat datang ${userData.username}${roleMsg}`, "success");
-
-
-        // 5. Redirect
-        setTimeout(() => {
-            window.location.hash = "#/dashboard";
-        }, 800);
-
-    } catch (err) {
-        showMessage(err.message, "error");
-        throw err;
+        // Update attempts display
+        updateLoginAttempts();
+        
+        // Check if blocked
+        if (isLoginBlocked()) {
+            const blockTime = getBlockTimeRemaining();
+            showMessage(`Terlalu banyak percobaan. Coba lagi dalam ${blockTime} menit.`, "error");
+        }
     }
 }
 
-// =============================
-// LOAD idAnggota
-// =============================
-// DI login.js - PERBAIKAN loadAnggotaId
-async function loadAnggotaId() {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
-        console.log("⚠ No user data found");
-        return null;
+// Login function with improved error handling
+async function login(username, password) {
+    console.log('🔍 LOGIN DEBUG');
+    console.log('Username:', username);
+    console.log('Login URL:', API.login);
+    
+    // Additional client-side validation
+    if (!username || !password) {
+        throw new Error("Username dan password harus diisi");
     }
     
     try {
-        const user = JSON.parse(userStr);
-        const token = localStorage.getItem("access");
+        // 1. Login untuk dapat token
+        const response = await fetch(API.login, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                username: username, 
+                password: password 
+            })
+        });
         
-        console.log(`🔍 Searching anggota for user ID: ${user.id}, Role: ${user.role}`);
+        console.log('HTTP Status:', response.status);
         
-        // Hanya cari anggota jika user role = "anggota"
-        if (user.role !== "anggota") {
-            console.log(`ℹ User role is "${user.role}", skipping anggota lookup`);
-            return null;
+        let errorMsg = 'Terjadi kesalahan pada server';
+        
+        if (!response.ok) {
+            try {
+                const errorData = await response.json();
+                
+                // Handle specific error cases
+                switch(response.status) {
+                    case 400:
+                        errorMsg = errorData.detail || 'Data login tidak valid';
+                        break;
+                    case 401:
+                        errorMsg = 'Username atau password salah';
+                        break;
+                    case 403:
+                        errorMsg = 'Akun dinonaktifkan atau tidak memiliki akses';
+                        break;
+                    case 404:
+                        errorMsg = 'Endpoint tidak ditemukan';
+                        break;
+                    case 429:
+                        errorMsg = 'Terlalu banyak percobaan. Coba lagi nanti.';
+                        break;
+                    case 500:
+                        errorMsg = 'Server mengalami masalah. Coba lagi nanti.';
+                        break;
+                    default:
+                        errorMsg = errorData.detail || `Login gagal (${response.status})`;
+                }
+                
+                // Log detailed error for debugging
+                console.error('Login error details:', errorData);
+                
+            } catch (parseError) {
+                errorMsg = `Login gagal dengan status ${response.status}`;
+            }
+            
+            showMessage(errorMsg, "error");
+            throw new Error(errorMsg);
         }
         
-        // Fetch dari API dengan query user ID
-        const response = await fetch(`${API.anggota}?user=${user.id}`, {
+        const data = await response.json();
+        console.log('Login Response:', data);
+        
+        if (!data.access) {
+            showMessage('Login gagal: Tidak menerima token', "error");
+            throw new Error('No access token received');
+        }
+        
+        // Validate token structure
+        try {
+            const tokenParts = data.access.split('.');
+            if (tokenParts.length !== 3) {
+                throw new Error('Token tidak valid');
+            }
+            
+            const tokenData = JSON.parse(atob(tokenParts[1]));
+            console.log('🔑 Token payload:', tokenData);
+            
+            // Check token expiration
+            if (tokenData.exp && Date.now() >= tokenData.exp * 1000) {
+                showMessage('Token sudah kadaluarsa', "error");
+                throw new Error('Token expired');
+            }
+            
+            const userId = tokenData.user_id;
+            if (!userId) {
+                showMessage('Token tidak berisi user_id', "error");
+                throw new Error('Invalid token payload');
+            }
+            
+            console.log('✅ User ID from token:', userId);
+            
+            // 3. Fetch user data dari API
+            const userUrl = API.users.replace(/\/$/, '') + `/${userId}/`;
+            console.log('User URL:', userUrl);
+            
+            const userResponse = await fetch(userUrl, {
+                headers: {
+                    'Authorization': `Bearer ${data.access}`,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!userResponse.ok) {
+                throw new Error(`Failed to fetch user data: ${userResponse.status}`);
+            }
+            
+            const userData = await userResponse.json();
+            console.log('✅ User data fetched:', userData);
+            
+            // Validate user data
+            if (!userData.id || !userData.username || !userData.role) {
+                throw new Error('Data pengguna tidak lengkap');
+            }
+            
+            // Check if account is active
+            if (userData.is_active === false) {
+                showMessage('Akun dinonaktifkan. Hubungi administrator.', "error");
+                throw new Error('Account disabled');
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('access', data.access);
+            localStorage.setItem('refresh', data.refresh);
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // Remember me option
+            const rememberMe = document.getElementById('rememberMe').checked;
+            if (rememberMe) {
+                localStorage.setItem('rememberedUser', username);
+                console.log('✅ Remembering user');
+            } else {
+                localStorage.removeItem('rememberedUser');
+            }
+            
+            // 4. Load idAnggota jika role = anggota
+            if (userData.role === 'anggota') {
+                await loadAnggotaId(userData.id, data.access);
+            }
+            
+            // 5. Tampilkan pesan sukses
+            showMessage(`Login berhasil! Selamat datang ${userData.username}`, "success");
+            
+            // Tampilkan toast jika tersedia
+            if (typeof showToast === 'function') {
+                showToast('success', `Selamat datang ${userData.username}!`);
+            }
+            
+            // 6. Redirect ke dashboard sesuai role
+            setTimeout(() => {
+                console.log(`🎯 Redirecting ${userData.role}...`);
+                window.location.hash = `#/dashboard-${userData.role}`;
+            }, 1500);
+            
+        } catch (tokenError) {
+            console.error('Token validation error:', tokenError);
+            showMessage('Token tidak valid. Coba login kembali.', "error");
+            throw tokenError;
+        }
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        
+        // Network error
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            showMessage('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.', "error");
+        } else if (error.message.includes('Failed to fetch')) {
+            showMessage('Server tidak merespon. Coba lagi nanti.', "error");
+        }
+        
+        throw error;
+    }
+}
+
+// Login attempts management
+function addLoginAttempt() {
+    let attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+    const now = Date.now();
+    
+    // Remove attempts older than 15 minutes
+    attempts = attempts.filter(time => now - time < 15 * 60 * 1000);
+    
+    // Add current attempt
+    attempts.push(now);
+    localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+    
+    // Log last attempt time
+    localStorage.setItem('lastLoginAttempt', now);
+    
+    updateLoginAttempts();
+}
+
+function resetLoginAttempts() {
+    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem('lastLoginAttempt');
+    updateLoginAttempts();
+}
+
+function updateLoginAttempts() {
+    const attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+    const attemptsDiv = document.getElementById('loginAttempts');
+    const countSpan = document.getElementById('attemptCount');
+    
+    if (attemptsDiv && countSpan) {
+        if (attempts.length > 0) {
+            attemptsDiv.style.display = 'block';
+            countSpan.textContent = attempts.length;
+            
+            // Change color based on attempts
+            if (attempts.length >= 3) {
+                attemptsDiv.className = 'small text-warning text-end mt-2';
+            }
+            if (attempts.length >= 5) {
+                attemptsDiv.className = 'small text-danger text-end mt-2';
+            }
+        } else {
+            attemptsDiv.style.display = 'none';
+        }
+    }
+}
+
+function isLoginBlocked() {
+    const attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+    const now = Date.now();
+    
+    // More than 5 attempts in last 15 minutes = blocked
+    const recentAttempts = attempts.filter(time => now - time < 15 * 60 * 1000);
+    return recentAttempts.length >= 5;
+}
+
+function getBlockTimeRemaining() {
+    const attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+    if (attempts.length < 5) return 0;
+    
+    const oldestAttempt = Math.min(...attempts);
+    const minutesPassed = Math.floor((Date.now() - oldestAttempt) / (60 * 1000));
+    return Math.max(0, 15 - minutesPassed);
+}
+
+// Load idAnggota
+async function loadAnggotaId(userId, token) {
+    try {
+        const response = await fetch(`${API.anggota}?user=${userId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
         
-        console.log(`📊 Response status: ${response.status}`);
-        
-        if (!response.ok) {
-            console.warn(`⚠ API error ${response.status} when fetching anggota`);
-            return null;
+        if (response.ok) {
+            const data = await response.json();
+            if (data.length > 0) {
+                const anggotaId = data[0].idAnggota || data[0].id;
+                localStorage.setItem("idAnggota", anggotaId);
+                console.log(`✅ idAnggota ditemukan: ${anggotaId}`);
+            }
         }
-        
-        const data = await response.json();
-        console.log(`📦 Data received:`, data);
-        
-        if (data.length > 0) {
-            const anggotaId = data[0].idAnggota || data[0].id;
-            localStorage.setItem("idAnggota", anggotaId);
-            console.log(`✅ idAnggota ditemukan: ${anggotaId}`);
-            return anggotaId;
-        } else {
-            console.log(`ℹ Tidak ada data anggota untuk user ID ${user.id}`);
-            console.log(`ℹ Silakan daftar sebagai anggota atau hubungi admin`);
-            return null;
-        }
-        
     } catch (error) {
-        console.error("❌ Gagal load anggota:", error);
-        console.log("ℹ Error ini tidak mengganggu login, melanjutkan...");
-        return null;
+        console.warn('Tidak bisa load data anggota:', error);
     }
 }
 
-// =============================
-// SHOW MESSAGE
-// =============================
+// Helper untuk menampilkan pesan
 function showMessage(message, type = "info") {
-    const div = document.getElementById("loginMessage");
-    div.textContent = message;
-
-    if (type === "error") {
-        div.style.color = "red";
-    } else if (type === "success") {
-        div.style.color = "green";
-    } else {
-        div.style.color = "#333";
+    const messageDiv = document.getElementById("loginMessage");
+    
+    // Reset styles
+    messageDiv.innerHTML = "";
+    messageDiv.className = "alert";
+    
+    // Set style berdasarkan type
+    switch (type) {
+        case "error":
+            messageDiv.className = "alert alert-danger";
+            break;
+        case "success":
+            messageDiv.className = "alert alert-success";
+            break;
+        case "warning":
+            messageDiv.className = "alert alert-warning";
+            break;
+        default:
+            messageDiv.className = "alert alert-info";
+    }
+    
+    // Tambahkan ikon
+    let icon = "";
+    switch (type) {
+        case "error":
+            icon = '<i class="bi bi-exclamation-triangle-fill me-2"></i>';
+            break;
+        case "success":
+            icon = '<i class="bi bi-check-circle-fill me-2"></i>';
+            break;
+        case "warning":
+            icon = '<i class="bi bi-exclamation-circle-fill me-2"></i>';
+            break;
+        default:
+            icon = '<i class="bi bi-info-circle-fill me-2"></i>';
+    }
+    
+    messageDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            ${icon}
+            <div>${message}</div>
+        </div>
+    `;
+    
+    // Auto-hide untuk pesan sukses
+    if (type === "success") {
+        setTimeout(() => {
+            messageDiv.style.opacity = "0";
+            messageDiv.style.transition = "opacity 0.5s";
+            setTimeout(() => {
+                messageDiv.innerHTML = "";
+                messageDiv.className = "";
+                messageDiv.style = "";
+            }, 500);
+        }, 3000);
     }
 }
 
+// Export juga function login untuk digunakan di tempat lain
 export { login };
-
-
-
-// // auth/login.js
-// import { API } from '../api.js';  // Import API object
-
-// // Export function untuk page login
-// export function loginPage() {
-//     console.log("📱 Rendering login page...");
-    
-//     // Render login form
-//     document.getElementById("app").innerHTML = `
-//         <div class="login-container" style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-//             <h2 style="text-align: center; color: #333;">Login</h2>
-            
-//             <form id="loginForm" style="display: flex; flex-direction: column; gap: 15px;">
-//                 <div>
-//                     <label for="username" style="display: block; margin-bottom: 5px;">Username</label>
-//                     <input type="text" id="username" placeholder="Masukkan username" required 
-//                            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-//                 </div>
-                
-//                 <div>
-//                     <label for="password" style="display: block; margin-bottom: 5px;">Password</label>
-//                     <input type="password" id="password" placeholder="Masukkan password" required 
-//                            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-//                 </div>
-                
-//                 <button type="submit" 
-//                         style="background-color: #4CAF50; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
-//                     Login
-//                 </button>
-//             </form>
-            
-//             <div style="text-align: center; margin-top: 20px;">
-//                 <p style="color: #666;">
-//                     Belum punya akun? 
-//                     <a href="#/register" style="color: #4CAF50; text-decoration: none;">Daftar disini</a>
-//                 </p>
-//             </div>
-            
-//             <div id="loginMessage" style="margin-top: 15px;"></div>
-//         </div>
-//     `;
-    
-//     // Add event listener untuk form
-//     document.getElementById("loginForm").addEventListener("submit", handleLoginSubmit);
-    
-//     // Auto-focus pada username field
-//     document.getElementById("username").focus();
-// }
-
-// // Handle form submission
-// async function handleLoginSubmit(event) {
-//     event.preventDefault();
-    
-//     const username = document.getElementById("username").value.trim();
-//     const password = document.getElementById("password").value;
-    
-//     if (!username || !password) {
-//         showMessage("Username dan password harus diisi!", "error");
-//         return;
-//     }
-    
-//     // Tampilkan loading
-//     showMessage("Memproses login...", "info");
-    
-//     // Disable button
-//     const submitBtn = event.target.querySelector('button[type="submit"]');
-//     submitBtn.disabled = true;
-//     submitBtn.textContent = "Memproses...";
-    
-//     try {
-//         await login(username, password);
-//     } catch (error) {
-//         // Enable button kembali
-//         submitBtn.disabled = false;
-//         submitBtn.textContent = "Login";
-//     }
-// }
-
-// // Login function
-// async function login(username, password) {
-//     console.log('🔍 LOGIN DEBUG');
-//     console.log('Username:', username);
-//     console.log('Password:', password);
-    
-//     try {
-//         // 1. Login untuk dapat token - PERBAIKI INI
-//         console.log('Login URL:', API.login);
-//         const response = await fetch(API.login, {  // API.login sudah string URL
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Accept': 'application/json'
-//             },
-//             body: JSON.stringify({ username, password })
-//         });
-        
-//         console.log('HTTP Status:', response.status);
-        
-//         if (!response.ok) {
-//             // Coba parse error message
-//             try {
-//                 const errorData = await response.json();
-//                 const errorMsg = errorData.detail || 'Username/password salah';
-//                 showMessage(`Login gagal: ${errorMsg}`, "error");
-//                 throw new Error(errorMsg);
-//             } catch {
-//                 showMessage(`Login gagal: HTTP ${response.status}`, "error");
-//                 throw new Error(`HTTP ${response.status}`);
-//             }
-//         }
-        
-//         const data = await response.json();
-//         console.log('Login Response:', data);
-        
-//         if (!data.access) {
-//             showMessage('Login gagal: Tidak menerima token', "error");
-//             throw new Error('No access token received');
-//         }
-        
-//         // Simpan token
-//         localStorage.setItem('access', data.access);
-//         localStorage.setItem('refresh', data.refresh);
-        
-//         console.log('✅ Token saved');
-//         showMessage('Token berhasil didapatkan...', "success");
-        
-//         // 2. Decode user_id dari token
-//         const tokenData = JSON.parse(atob(data.access.split('.')[1]));
-//         const userId = tokenData.user_id;
-//         console.log('🔑 User ID from token:', userId);
-        
-//         // 3. Fetch user data dari API - PERBAIKI INI
-//         showMessage('Mengambil data pengguna...', "info");
-//         console.log('🔄 Fetching user data...');
-        
-//         // Gunakan API.users dan replace {id} dengan userId
-//         const userUrl = API.users.replace(/\/$/, '') + `/${userId}/`;
-//         console.log('User URL:', userUrl);
-        
-//         const userResponse = await fetch(userUrl, {
-//             headers: {
-//                 'Authorization': `Bearer ${data.access}`,
-//                 'Accept': 'application/json'
-//             }
-//         });
-        
-//         if (!userResponse.ok) {
-//             throw new Error(`Failed to fetch user data: ${userResponse.status}`);
-//         }
-        
-//         const userData = await userResponse.json();
-//         console.log('✅ User data fetched:', userData);
-        
-//         // Simpan user data ke localStorage
-//         localStorage.setItem('user', JSON.stringify(userData));
-        
-//         // 4. Tampilkan pesan sukses dan redirect
-//         showMessage(`Login berhasil! Selamat datang ${userData.username} (${userData.role})`, "success");
-        
-//         console.log(`🎯 Redirecting to ${userData.role} dashboard...`);
-        
-//         // Redirect setelah 1 detik
-//         setTimeout(() => {
-//             window.location.hash = "#/dashboard";
-//         }, 1000);
-        
-//     } catch (error) {
-//         console.error('Login error:', error);
-//         showMessage(`Terjadi kesalahan: ${error.message}`, "error");
-//         throw error;
-//     }
-// }
-
-// // Helper untuk menampilkan pesan
-// function showMessage(message, type = "info") {
-//     const messageDiv = document.getElementById("loginMessage");
-    
-//     // Reset styles
-//     messageDiv.innerHTML = "";
-//     messageDiv.style.padding = "10px";
-//     messageDiv.style.borderRadius = "4px";
-//     messageDiv.style.marginTop = "15px";
-    
-//     // Set style berdasarkan type
-//     if (type === "error") {
-//         messageDiv.style.backgroundColor = "#ffebee";
-//         messageDiv.style.color = "#c62828";
-//         messageDiv.style.border = "1px solid #ffcdd2";
-//     } else if (type === "success") {
-//         messageDiv.style.backgroundColor = "#e8f5e9";
-//         messageDiv.style.color = "#2e7d32";
-//         messageDiv.style.border = "1px solid #c8e6c9";
-//     } else {
-//         messageDiv.style.backgroundColor = "#e3f2fd";
-//         messageDiv.style.color = "#1565c0";
-//         messageDiv.style.border = "1px solid #bbdefb";
-//     }
-    
-//     messageDiv.textContent = message;
-    
-//     // Auto-hide untuk pesan sukses
-//     if (type === "success") {
-//         setTimeout(() => {
-//             messageDiv.style.opacity = "0";
-//             messageDiv.style.transition = "opacity 0.5s";
-//             setTimeout(() => {
-//                 messageDiv.innerHTML = "";
-//                 messageDiv.style = "";
-//             }, 500);
-//         }, 3000);
-//     }
-// }
-
-// // Export juga function login untuk digunakan di tempat lain
-// export { login };
