@@ -1,5 +1,6 @@
 import { API, getAuthHeaders } from "../../api.js";
 import { showModal, showConfirmModal, closeModal } from "../../utils/modal.js";
+import { showToast } from "../../utils/toast.js";
 
 let currentPage = 1;
 const pageSize = 10;
@@ -679,7 +680,6 @@ function getPaymentMethodIcon(method) {
   
   const icons = {
     'bank': '<i class="bi bi-bank text-primary me-1"></i>',
-    'qris': '<i class="bi bi-qr-code text-success me-1"></i>',
     'cash': '<i class="bi bi-cash text-success me-1"></i>',
     'transfer': '<i class="bi bi-arrow-left-right text-info me-1"></i>',
     'ewallet': '<i class="bi bi-phone text-info me-1"></i>'
@@ -1112,12 +1112,12 @@ async function saveBuktiPembayaran(pembayaranId) {
         throw new Error(errorData.detail || `Upload gagal: ${response.status}`);
       }
       
-      showAlert(messageDiv, '✅ Bukti pembayaran berhasil diupload', 'success');
-      alert("✅ Bukti pembayaran berhasil diupload, 'success'")
+      showToast('✅ Bukti pembayaran berhasil diupload', 'success', 5000);
+      alert("✅ Bukti pembayaran berhasil diupload");
       setTimeout(() => {
         loadPembayaran();
         closeModal();
-      }, 1500);
+      }, 5000);
       return true;
       
     } catch (error) {

@@ -430,31 +430,53 @@ function renderPaymentPage() {
                 <div class="card-body">
                     <p class="text-muted mb-4">Bayar Rp 50.000 untuk keanggotaan 1 bulan</p>
                     
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="payment-method card h-100 border-2 cursor-pointer" data-method="transfer">
-                                <div class="card-body text-center">
-                                    <div class="display-4 mb-3 text-primary">
-                                        <i class="bi bi-bank"></i>
-                                    </div>
-                                    <h5 class="text-dark">Transfer Bank</h5>
-                                    <p class="text-muted small mb-0">BNI / BRI / Mandiri</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="payment-method card h-100 border-2 cursor-pointer" data-method="cash">
-                                <div class="card-body text-center">
-                                    <div class="display-4 mb-3 text-success">
-                                        <i class="bi bi-cash-stack"></i>
-                                    </div>
-                                    <h5 class="text-dark">Tunai</h5>
-                                    <p class="text-muted small mb-0">Bayar ke petugas</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="row mb-4">
+                      <!-- Transfer Bank - Lebar lebih besar karena konten lebih banyak -->
+                      <div class="col-lg-6 mb-3">
+                          <div class="payment-method card h-100 border-2 cursor-pointer shadow-sm" data-method="transfer">
+                              <div class="card-body text-center p-4">
+                                  <div class="mb-4">
+                                      <div class="bg-primary bg-opacity-10 p-4 rounded-circle d-inline-block">
+                                          <i class="bi bi-bank text-primary display-4"></i>
+                                      </div>
+                                  </div>
+                                  <h4 class="text-dark mb-2">Transfer Bank</h4>
+                                  <p class="text-muted mb-3">BNI / BRI / Mandiri / BCA</p>
+                                  <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                      <i class="bi bi-clock me-1"></i> Verifikasi 1-2 jam
+                                  </div>
+                              </div>
+                              <div class="card-footer bg-transparent border-top-0 pt-0 text-center">
+                                  <small class="text-success">
+                                      <i class="bi bi-check-circle me-1"></i> Gratis biaya admin
+                                  </small>
+                              </div>
+                          </div>
+                      </div>
+                      
+                      <!-- Tunai - Lebar sama dengan transfer -->
+                      <div class="col-lg-6 mb-3">
+                          <div class="payment-method card h-100 border-2 cursor-pointer shadow-sm" data-method="cash">
+                              <div class="card-body text-center p-4">
+                                  <div class="mb-4">
+                                      <div class="bg-success bg-opacity-10 p-4 rounded-circle d-inline-block">
+                                          <i class="bi bi-cash-stack text-success display-4"></i>
+                                      </div>
+                                  </div>
+                                  <h4 class="text-dark mb-2">Bayar Tunai</h4>
+                                  <p class="text-muted mb-3">Bayar langsung ke petugas</p>
+                                  <div class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                                      <i class="bi bi-lightning-charge me-1"></i> Konfirmasi instan
+                                  </div>
+                              </div>
+                              <div class="card-footer bg-transparent border-top-0 pt-0 text-center">
+                                  <small class="text-muted">
+                                      <i class="bi bi-geo-alt me-1"></i> Petugas datang ke lokasi
+                                  </small>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
                     
                     <div id="paymentDetails" class="alert alert-light border" style="display: none;">
                         <div id="paymentInstructions"></div>
@@ -495,7 +517,7 @@ function renderPaymentPage() {
                 <ul class="mb-0">
                     <li>Biaya keanggotaan: <strong class="text-success">Rp 50.000 per bulan</strong></li>
                     <li>Pembayaran tunai: Bayar ke petugas saat pengangkutan sampah pertama</li>
-                    <li>Transfer bank: Upload bukti transfer setelah melakukan pembayaran</li>
+                    <li>Transfer bank Mandiri: Upload bukti transfer setelah melakukan pembayaran</li>
                     <li>Status anggota akan non-aktif jika pembayaran terlambat 7 hari</li>
                 </ul>
             </div>
@@ -561,7 +583,7 @@ function showPaymentInstructions(method) {
                     <table class="table table-sm mt-2">
                         <tr>
                             <td class="fw-bold">Bank</td>
-                            <td class="text-end"><strong>BNI</strong></td>
+                            <td class="text-end"><strong>Mandiri</strong></td>
                         </tr>
                         <tr>
                             <td class="fw-bold">Nomor Rekening</td>
@@ -751,7 +773,6 @@ async function createPayment(method) {
     });
 
     console.log("📥 Response pembayaran:", responseData);
-    alert("pembayaran Berhasil di Buat, Silahkan bayar ketika petugas mengambil saat pengambilan pertama!");
 
     const paymentId = responseData.idPembayaran || responseData.id;
     currentPaymentId = paymentId;
@@ -770,6 +791,9 @@ async function createPayment(method) {
                     Petugas akan mengkonfirmasi pembayaran Anda.
                 </small>
             `
+      );
+      alert(
+        "pembayaran Berhasil di Buat, Silahkan bayar ketika petugas mengambil saat pengambilan pertama!"
       );
 
       // Refresh data
@@ -868,21 +892,24 @@ async function processCashPayment() {
 }
 
 function showUploadModal(paymentData) {
-  const modal = document.getElementById("uploadModal") || document.createElement("div");
+  const modal =
+    document.getElementById("uploadModal") || document.createElement("div");
   modal.id = "uploadModal";
   modal.innerHTML = "";
 
-  const isTransferBank = paymentData.metodeBayar === "bank_transfer" || !paymentData.metodeBayar;
-  
+  const isTransferBank =
+    paymentData.metodeBayar === "bank_transfer" || !paymentData.metodeBayar;
+
   // Tentukan judul dan warna berdasarkan metode
-  const modalTitle = '<i class="bi bi-cloud-upload me-2"></i>Upload Bukti Transfer';
-  const modalHeaderClass = 'bg-success text-white';
-  const modalButtonClass = 'btn-success';
+  const modalTitle =
+    '<i class="bi bi-cloud-upload me-2"></i>Upload Bukti Transfer';
+  const modalHeaderClass = "bg-success text-white";
+  const modalButtonClass = "btn-success";
 
   // Instruksi untuk Transfer Bank
-  let instructionsHTML = '';
-  let paymentInfoHTML = '';
-  
+  let instructionsHTML = "";
+  let paymentInfoHTML = "";
+
   // Hanya tampilkan untuk transfer bank
   instructionsHTML = `
     <div class="mb-4">
@@ -922,7 +949,7 @@ function showUploadModal(paymentData) {
       </ul>
     </div>
   `;
-  
+
   paymentInfoHTML = `
     <p class="mb-1"><strong>ID Pembayaran:</strong> ${paymentData.idPembayaran || paymentData.id}</p>
     <p class="mb-1"><strong>Jumlah:</strong> <span class="text-success fw-bold">Rp 50.000</span></p>
@@ -1077,12 +1104,10 @@ async function loadPaymentSummary() {
         paymentStatusText = "Lunas";
       }
 
-      document.getElementById(
-        "totalPaid"
-      ).textContent = `Rp ${totalPaid.toLocaleString("id-ID")}`;
-      document.getElementById(
-        "activeMonths"
-      ).textContent = `${activeMonths} bulan`;
+      document.getElementById("totalPaid").textContent =
+        `Rp ${totalPaid.toLocaleString("id-ID")}`;
+      document.getElementById("activeMonths").textContent =
+        `${activeMonths} bulan`;
       document.getElementById("paymentStatus").textContent = paymentStatusText;
 
       // Update status color
@@ -1092,10 +1117,10 @@ async function loadPaymentSummary() {
         (paymentStatus === "Aktif" || paymentStatus === "Lunas"
           ? "text-success"
           : paymentStatus === "Menunggu"
-          ? "text-warning"
-          : paymentStatus === "Gagal"
-          ? "text-danger"
-          : "text-muted");
+            ? "text-warning"
+            : paymentStatus === "Gagal"
+              ? "text-danger"
+              : "text-muted");
 
       // Update header card warna sesuai status
       const statusCard = document.querySelector(
@@ -1195,7 +1220,7 @@ async function loadPembayaran() {
 function renderPaymentRow(payment) {
   const status = payment.statusBayar || payment.status || "pending";
   const jumlahBayar = payment.jumlahBayar || payment.nominal || 0;
-  
+
   // Cek apakah sudah ada bukti bayar
   const hasBuktiBayar = payment.bukti_bayar || payment.buktiBayar;
 
@@ -1209,9 +1234,17 @@ function renderPaymentRow(payment) {
     case "pending":
       // Jika pending, cek apakah sudah ada bukti
       if (hasBuktiBayar) {
-        statusConfig = { class: "info", text: "Menunggu Verifikasi", icon: "clock-history" };
+        statusConfig = {
+          class: "info",
+          text: "Menunggu Verifikasi",
+          icon: "clock-history",
+        };
       } else {
-        statusConfig = { class: "warning", text: "Menunggu Pembayaran", icon: "clock" };
+        statusConfig = {
+          class: "warning",
+          text: "Menunggu Pembayaran",
+          icon: "clock",
+        };
       }
       break;
     case "failed":
@@ -1243,11 +1276,11 @@ function renderPaymentRow(payment) {
 
   // Tombol aksi berdasarkan status, metode, dan bukti
   let actionButton = "";
-  
+
   if (status === "pending") {
     // Cek apakah metode memerlukan upload bukti
-    const needsUpload = (payment.metodeBayar === "bank_transfer");
-    
+    const needsUpload = payment.metodeBayar === "bank_transfer";
+
     if (needsUpload) {
       // Jika sudah ada bukti, tidak tampilkan tombol upload
       if (hasBuktiBayar) {
@@ -1298,8 +1331,8 @@ function renderPaymentRow(payment) {
         status === "success" || status === "lunas"
           ? "text-success"
           : status === "pending" && hasBuktiBayar
-          ? "text-info"
-          : "text-warning"
+            ? "text-info"
+            : "text-warning"
       } fw-bold">
         Rp ${jumlahBayar.toLocaleString("id-ID")}
       </td>
@@ -1605,8 +1638,8 @@ window.showUploadMessage = function (message, type = "info") {
               type === "error"
                 ? "exclamation-triangle"
                 : type === "success"
-                ? "check-circle"
-                : "info-circle"
+                  ? "check-circle"
+                  : "info-circle"
             } me-2"></i>
             ${message}
         </div>
@@ -1723,8 +1756,8 @@ function showPaymentDetailSimplified(paymentData) {
                                       "bank_transfer"
                                         ? "Transfer Bank"
                                         : paymentData.metodeBayar === "cash"
-                                        ? "Tunai"
-                                        : paymentData.metodeBayar || "N/A"
+                                          ? "Tunai"
+                                          : paymentData.metodeBayar || "N/A"
                                     }
                                 </td>
                             </tr>

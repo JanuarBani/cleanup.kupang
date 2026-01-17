@@ -1,5 +1,11 @@
 import { registerSW } from "virtual:pwa-register";
 
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// expose ke global (WAJIB supaya bisa dipakai di users.js)
+window.L = L;
+
 registerSW({
   immediate: true,
 });

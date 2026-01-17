@@ -80,7 +80,7 @@ export class AdminNotifications {
             
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.role !== 'admin') {
-                showToast('error', 'Hanya admin yang dapat mengaktifkan notifikasi');
+                showToast('Hanya admin yang dapat mengaktifkan notifikasi', 'error');
                 return false;
             }
             
@@ -118,13 +118,13 @@ export class AdminNotifications {
                 // Start polling
                 this.startNotificationPolling();
                 
-                showToast('success', 'Notifikasi admin telah diaktifkan!');
+                showToast('Notifikasi admin telah diaktifkan!', 'success');
                 
                 return true;
             } else {
                 console.error("❌ Failed to enable admin notifications:", result.error);
                 await this.updateNotificationUI('error');
-                showToast('error', 'Gagal mengaktifkan notifikasi');
+                showToast('Gagal mengaktifkan notifikasi', 'error');
                 return false;
             }
             
@@ -146,7 +146,7 @@ export class AdminNotifications {
             }
             
             await this.updateNotificationUI(uiStatus);
-            showToast('error', errorMessage);
+            showToast(errorMessage, 'error');
             return false;
         }
     }
@@ -172,20 +172,20 @@ export class AdminNotifications {
                 // Update UI
                 await this.updateNotificationUI('unsubscribed');
                 
-                showToast('info', 'Notifikasi admin telah dinonaktifkan');
+                showToast('Notifikasi admin telah dinonaktifkan', 'info');
                 
                 return true;
             } else {
                 console.error("❌ Failed to disable admin notifications:", result.error);
                 await this.updateNotificationUI('error');
-                showToast('error', 'Gagal menonaktifkan notifikasi');
+                showToast('Gagal menonaktifkan notifikasi', 'error');
                 return false;
             }
             
         } catch (error) {
             console.error('❌ Error disabling admin notifications:', error);
             await this.updateNotificationUI('error');
-            showToast('error', 'Terjadi kesalahan saat menonaktifkan notifikasi');
+            showToast('Terjadi kesalahan saat menonaktifkan notifikasi', 'success');
             return false;
         }
     }
@@ -204,7 +204,7 @@ export class AdminNotifications {
             
         } catch (error) {
             console.error('❌ Error toggling admin notifications:', error);
-            showToast('error', 'Gagal mengubah pengaturan notifikasi');
+            showToast('Gagal mengubah pengaturan notifikasi', 'error');
             return false;
         }
     }
@@ -369,7 +369,7 @@ export class AdminNotifications {
             this.unreadNotifications = 0;
             this.updateNotificationBadge();
             
-            showToast('success', `Semua notifikasi (${data.count || 0}) telah ditandai sebagai dibaca`);
+            showToast(`Semua notifikasi (${data.count || 0}) telah ditandai sebagai dibaca`, 'success');
             return true;
 
         } catch (error) {
@@ -404,7 +404,7 @@ export class AdminNotifications {
                 this.unreadNotifications = 0;
                 this.updateNotificationBadge();
                 
-                showToast('success', 'Semua notifikasi telah ditandai sebagai dibaca (fallback)');
+                showToast('Semua notifikasi telah ditandai sebagai dibaca (fallback)', 'success');
                 return true;
                 
             } catch (fallbackError) {
@@ -413,7 +413,7 @@ export class AdminNotifications {
                 // Ultimate fallback: hanya update lokal
                 this.unreadNotifications = 0;
                 this.updateNotificationBadge();
-                showToast('info', 'Notifikasi ditandai sebagai dibaca secara lokal');
+                showToast('Notifikasi ditandai sebagai dibaca secara lokal', 'info');
                 return true;
             }
         }
@@ -516,7 +516,7 @@ export class AdminNotifications {
                 this.updateNotificationBadge();
             }
             
-            showToast('success', 'Notifikasi berhasil dihapus');
+            showToast('Notifikasi berhasil dihapus', 'success');
             console.log(`✅ Admin notification ${notificationId} deleted successfully`);
             
             return true;
@@ -527,7 +527,7 @@ export class AdminNotifications {
             // Fallback untuk development
             const mockDeleted = this.handleLocalDelete(notificationId);
             if (mockDeleted) {
-                showToast('info', 'Notifikasi dihapus (mode pengembangan)');
+                showToast('Notifikasi dihapus (mode pengembangan)', 'info');
                 return true;
             }
             
@@ -538,7 +538,7 @@ export class AdminNotifications {
                 errorMessage = 'Anda tidak memiliki izin untuk menghapus notifikasi';
             }
             
-            showToast('error', errorMessage);
+            showToast(errorMessage, 'info');
             return false;
         }
     }
@@ -609,7 +609,7 @@ export class AdminNotifications {
             }
             
             // Tampilkan loading
-            showToast('info', 'Menghapus semua notifikasi admin...', 3000);
+            showToast('Menghapus semua notifikasi admin...', 'info', 3000);
             
             const authHeaders = getAuthHeaders();
             
@@ -636,7 +636,7 @@ export class AdminNotifications {
                 this.unreadNotifications = 0;
                 this.updateNotificationBadge();
                 
-                showToast('success', 'Semua riwayat notifikasi admin telah dihapus');
+                showToast('Semua riwayat notifikasi admin telah dihapus', 'success');
                 console.log("✅ All admin notifications deleted successfully");
                 
                 return true;
@@ -666,7 +666,7 @@ export class AdminNotifications {
             this.unreadNotifications = 0;
             this.updateNotificationBadge();
             
-            showToast('info', 'Riwayat notifikasi admin direset (mode pengembangan)');
+            showToast('Riwayat notifikasi admin direset (mode pengembangan)', 'info');
             return true;
         }
     }
@@ -680,7 +680,7 @@ export class AdminNotifications {
             
             if (notifications.length === 0) {
                 console.log('Tidak ada notifikasi admin untuk dihapus');
-                showToast('info', 'Tidak ada notifikasi untuk dihapus');
+                showToast('Tidak ada notifikasi untuk dihapus', 'info');
                 return true;
             }
             
@@ -712,7 +712,7 @@ export class AdminNotifications {
                 message += `, ${failCount} gagal`;
             }
             
-            showToast('success', message);
+            showToast(message, 'success');
             console.log(`✅ Deleted ${successCount} admin notifications (${failCount} failed)`);
             
             return successCount > 0;
@@ -723,7 +723,7 @@ export class AdminNotifications {
             // Reset lokal
             this.unreadNotifications = 0;
             this.updateNotificationBadge();
-            showToast('info', 'Notifikasi admin direset secara lokal');
+            showToast('Notifikasi admin direset secara lokal', 'info');
             
             return true;
         }
@@ -852,7 +852,7 @@ export class AdminNotifications {
             
         } catch (error) {
             console.error('❌ Error showing admin notification modal:', error);
-            showToast('error', 'Gagal memuat notifikasi');
+            showToast('Gagal memuat notifikasi', 'error');
         }
     }
 
@@ -1048,7 +1048,7 @@ export class AdminNotifications {
                     } else {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="bi bi-check"></i> Baca';
-                        showToast('error', 'Gagal menandai notifikasi sebagai dibaca');
+                        showToast('Gagal menandai notifikasi sebagai dibaca', 'error');
                     }
                 });
             });
@@ -1075,7 +1075,7 @@ export class AdminNotifications {
                     } else {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="bi bi-trash"></i> Hapus';
-                        showToast('error', 'Gagal menghapus notifikasi');
+                        showToast('Gagal menghapus notifikasi', 'error');
                     }
                 });
             });

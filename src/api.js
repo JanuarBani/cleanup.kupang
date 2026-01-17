@@ -200,12 +200,6 @@ export function getPublicHeaders() {
     "Content-Type": "application/json",
   };
 
-  // Tambahkan CSRF token jika ada (untuk form submissions)
-  const csrfToken = getCookie("csrftoken");
-  if (csrfToken) {
-    headers["X-CSRFToken"] = csrfToken;
-  }
-
   return headers;
 }
 

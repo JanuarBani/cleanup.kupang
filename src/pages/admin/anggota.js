@@ -1,7 +1,13 @@
 import { API, getAuthHeaders, fetchAPI } from "../../api.js";
-import { showModal, showConfirmModal, showModalAlert, showNotif, closeModal } from "../../utils/modal.js";
+import {
+  showModal,
+  showConfirmModal,
+  showModalAlert,
+  showNotif,
+  closeModal,
+} from "../../utils/modal.js";
 import { ensureLeafletLoaded, initMapForm } from "../../utils/mapConfig.js";
-import { showToast } from '../../utils/toast.js';
+import { showToast } from "../../utils/toast.js";
 
 let anggotaAllData = [];
 let anggotaCurrentPage = 1;
@@ -13,10 +19,16 @@ let anggotaEditFormMarker = null;
 let anggotaEditFormGPSMarker = null;
 
 // Fungsi untuk render GPS ke peta (bisa digunakan untuk form dan edit)
-async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, options = {}) {
+async function renderGPSForMap(
+  mapInstance,
+  marker,
+  gpsMarker,
+  statusCallback,
+  options = {}
+) {
   if (!navigator.geolocation) {
-    if (statusCallback) statusCallback('error', 'Browser tidak mendukung GPS');
-    throw new Error('Browser tidak mendukung geolocation');
+    if (statusCallback) statusCallback("error", "Browser tidak mendukung GPS");
+    throw new Error("Browser tidak mendukung geolocation");
   }
 
   // Default options
@@ -26,14 +38,14 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
     maximumAge: 60000,
     showAccuracyCircle: true,
     moveToLocation: true,
-    zoomLevel: 16
+    zoomLevel: 16,
   };
 
   const config = { ...defaultOptions, ...options };
 
   return new Promise((resolve, reject) => {
     // Update status loading
-    if (statusCallback) statusCallback('loading');
+    if (statusCallback) statusCallback("loading");
 
     navigator.geolocation.getCurrentPosition(
       // Success callback
@@ -45,10 +57,10 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
 
           // Update status success
           if (statusCallback) {
-            statusCallback('success', {
+            statusCallback("success", {
               lat: lat.toFixed(7),
               lng: lng.toFixed(7),
-              accuracy: Math.round(accuracy)
+              accuracy: Math.round(accuracy),
             });
           }
 
@@ -105,7 +117,9 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
           });
 
           // Tambahkan popup
-          newGpsMarker.bindPopup(`
+          newGpsMarker
+            .bindPopup(
+              `
             <div style="max-width: 250px;">
               <strong style="color: #28a745;">
                 <i class="bi bi-crosshair me-1"></i>LOKASI GPS ANDA
@@ -123,7 +137,9 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
                 </button>
               </div>
             </div>
-          `).openPopup();
+          `
+            )
+            .openPopup();
 
           // Tambahkan ke peta
           newGpsMarker.addTo(mapInstance);
@@ -156,39 +172,38 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
             lat,
             lng,
             accuracy,
-            marker: newGpsMarker
+            marker: newGpsMarker,
           });
-
         } catch (error) {
-          if (statusCallback) statusCallback('error', error.message);
+          if (statusCallback) statusCallback("error", error.message);
           reject(error);
         }
       },
-      
+
       // Error callback
       (error) => {
-        let errorMessage = 'Gagal mendapatkan lokasi GPS';
+        let errorMessage = "Gagal mendapatkan lokasi GPS";
         switch (error.code) {
           case 1:
-            errorMessage = 'Izin lokasi ditolak';
+            errorMessage = "Izin lokasi ditolak";
             break;
           case 2:
-            errorMessage = 'Lokasi tidak tersedia';
+            errorMessage = "Lokasi tidak tersedia";
             break;
           case 3:
-            errorMessage = 'Waktu pencarian habis';
+            errorMessage = "Waktu pencarian habis";
             break;
         }
-        
-        if (statusCallback) statusCallback('error', errorMessage);
+
+        if (statusCallback) statusCallback("error", errorMessage);
         reject(new Error(errorMessage));
       },
-      
+
       // Options
       {
         enableHighAccuracy: config.enableHighAccuracy,
         timeout: config.timeout,
-        maximumAge: config.maximumAge
+        maximumAge: config.maximumAge,
       }
     );
   });
@@ -197,108 +212,114 @@ async function renderGPSForMap(mapInstance, marker, gpsMarker, statusCallback, o
 // Fungsi untuk setup Bootstrap validation
 function setupFormValidation() {
   // Cegah submit default
-  const forms = document.querySelectorAll('.needs-validation');
-  
-  Array.from(forms).forEach(form => {
-    form.addEventListener('submit', event => {
-      if (!form.checkValidity()) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      
-      form.classList.add('was-validated');
-    }, false);
+  const forms = document.querySelectorAll(".needs-validation");
+
+  Array.from(forms).forEach((form) => {
+    form.addEventListener(
+      "submit",
+      (event) => {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        form.classList.add("was-validated");
+      },
+      false
+    );
   });
 }
 
 // Fungsi untuk validasi field individual
 function validateField(field) {
   if (field.checkValidity()) {
-    field.classList.remove('is-invalid');
-    field.classList.add('is-valid');
+    field.classList.remove("is-invalid");
+    field.classList.add("is-valid");
   } else {
-    field.classList.remove('is-valid');
-    field.classList.add('is-invalid');
+    field.classList.remove("is-valid");
+    field.classList.add("is-invalid");
   }
 }
 
-function showFormToast(message, type = 'info') {
-    // Pastikan showToast sudah tersedia secara global
-    if (typeof showToast === 'function') {
-        showToast(message, type, 3000);
-    } else {
-        // Fallback ke alert jika showToast tidak tersedia
-        alert(`${type.toUpperCase()}: ${message}`);
-    }
+function showFormToast(message, type = "info") {
+  // Pastikan showToast sudah tersedia secara global
+  if (typeof showToast === "function") {
+    showToast(message, type, 3000);
+  } else {
+    // Fallback ke alert jika showToast tidak tersedia
+    alert(`${type.toUpperCase()}: ${message}`);
+  }
 }
 
-function showFormAlert(message, type = 'danger', formId = 'formMessage') {
-    const formMessage = document.getElementById(formId);
-    if (!formMessage) return;
-    
-    formMessage.innerHTML = `
+function showFormAlert(message, type = "danger", formId = "formMessage") {
+  const formMessage = document.getElementById(formId);
+  if (!formMessage) return;
+
+  formMessage.innerHTML = `
         <div class="alert alert-${type} alert-dismissible fade show">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}-fill me-2"></i>
+            <i class="bi bi-${type === "success" ? "check-circle" : "exclamation-triangle"}-fill me-2"></i>
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `;
-    
-    // Auto dismiss untuk success/info
-    if (type === 'success' || type === 'info') {
-        setTimeout(() => {
-            const alert = formMessage.querySelector('.alert');
-            if (alert) {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            }
-        }, 3000);
-    }
-    
-    // Scroll ke alert
-    formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Auto dismiss untuk success/info
+  if (type === "success" || type === "info") {
+    setTimeout(() => {
+      const alert = formMessage.querySelector(".alert");
+      if (alert) {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }
+    }, 3000);
+  }
+
+  // Scroll ke alert
+  formMessage.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function validatePhoneNumber(phoneNumber) {
-    if (!phoneNumber) return { 
-        valid: false, 
-        message: 'Nomor WhatsApp harus diisi',
-        cleanNoWA: ''
+  if (!phoneNumber)
+    return {
+      valid: false,
+      message: "Nomor WhatsApp harus diisi",
+      cleanNoWA: "",
     };
-    
-    // Hapus semua karakter non-digit
-    const cleanNoWA = phoneNumber.toString().replace(/\D/g, '');
-    
-    // Validasi panjang nomor
-    if (cleanNoWA.length < 10) {
-        return { 
-            valid: false, 
-            message: 'Nomor WhatsApp terlalu pendek (minimal 10 digit)',
-            cleanNoWA: cleanNoWA
-        };
+
+  // Hapus semua karakter non-digit
+  const cleanNoWA = phoneNumber.toString().replace(/\D/g, "");
+
+  // Validasi panjang nomor
+  if (cleanNoWA.length < 10) {
+    return {
+      valid: false,
+      message: "Nomor WhatsApp terlalu pendek (minimal 10 digit)",
+      cleanNoWA: cleanNoWA,
+    };
+  }
+
+  if (cleanNoWA.length > 13) {
+    return {
+      valid: false,
+      message: "Nomor WhatsApp terlalu panjang (maksimal 15 digit)",
+      cleanNoWA: cleanNoWA,
+    };
+  }
+
+  // Validasi tambahan: format 08 harus memiliki panjang yang tepat
+  if (cleanNoWA.startsWith("08")) {
+    const digitsAfter08 = cleanNoWA.substring(2);
+    if (digitsAfter08.length < 8 || digitsAfter08.length > 10) {
+      return {
+        valid: false,
+        message:
+          "Nomor WhatsApp dengan format 08 harus memiliki 10-12 digit total",
+        cleanNoWA: cleanNoWA,
+      };
     }
-    
-    if (cleanNoWA.length > 13) {
-        return { 
-            valid: false, 
-            message: 'Nomor WhatsApp terlalu panjang (maksimal 15 digit)',
-            cleanNoWA: cleanNoWA
-        };
-    }
-    
-    // Validasi tambahan: format 08 harus memiliki panjang yang tepat
-    if (cleanNoWA.startsWith('08')) {
-        const digitsAfter08 = cleanNoWA.substring(2);
-        if (digitsAfter08.length < 8 || digitsAfter08.length > 10) {
-            return { 
-                valid: false, 
-                message: 'Nomor WhatsApp dengan format 08 harus memiliki 10-12 digit total',
-                cleanNoWA: cleanNoWA
-            };
-        }
-    }
-    
-    return { valid: true, cleanNoWA: cleanNoWA };
+  }
+
+  return { valid: true, cleanNoWA: cleanNoWA };
 }
 
 export async function anggotaAdminPage() {
@@ -722,7 +743,7 @@ function renderAnggotaTable() {
 
   // Render pagination
   renderPagination(totalPages);
-  
+
   // Setup event listeners untuk tombol aksi
   setupTableActionListeners();
 }
@@ -829,8 +850,8 @@ function renderPagination(totalPages) {
       <div class="mb-2 mb-md-0">
         <small class="text-muted">
           Menampilkan ${startData} - ${endData} dari ${
-    anggotaAllData.length
-  } anggota
+            anggotaAllData.length
+          } anggota
         </small>
       </div>
       
@@ -869,10 +890,13 @@ function setupPaginationListeners() {
   // Pastikan fungsi goToPage tersedia di window
   window.goToPage = (pageNumber) => {
     // Validasi page number
-    if (pageNumber < 1 || pageNumber > Math.ceil(anggotaAllData.length / anggotaPerPage)) {
+    if (
+      pageNumber < 1 ||
+      pageNumber > Math.ceil(anggotaAllData.length / anggotaPerPage)
+    ) {
       return;
     }
-    
+
     anggotaCurrentPage = pageNumber;
     renderAnggotaTable();
 
@@ -946,7 +970,7 @@ async function editAnggota(anggotaId) {
       tanggalEnd: anggota.tanggalEnd || "",
       status: anggota.status || "aktif",
       jenisSampah: anggota.jenisSampah || "Rumah Tangga",
-      userId: userData ? userData.id : null
+      userId: userData ? userData.id : null,
     };
 
     const formHTML = `
@@ -1280,48 +1304,52 @@ async function editAnggota(anggotaId) {
 
     showModal(`Edit Anggota: ${anggota.nama}`, formHTML, async () => {
       // Dapatkan form
-      const form = document.getElementById('anggotaFormEdit');
-      
+      const form = document.getElementById("anggotaFormEdit");
+
       // Reset validation state
-      form.classList.remove('was-validated');
-      
+      form.classList.remove("was-validated");
+
       // Check validity
       if (!form.checkValidity()) {
         // Add validation styles
-        form.classList.add('was-validated');
+        form.classList.add("was-validated");
         // Scroll ke field pertama yang invalid
-        const invalidField = form.querySelector(':invalid');
+        const invalidField = form.querySelector(":invalid");
         if (invalidField) {
-          invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          invalidField.scrollIntoView({ behavior: "smooth", block: "center" });
           invalidField.focus();
         }
         return false;
       }
 
       // Validasi tambahan untuk nomor WhatsApp
-      const phoneValidation = validatePhoneNumber(document.getElementById("noWA").value);
+      const phoneValidation = validatePhoneNumber(
+        document.getElementById("noWA").value
+      );
       if (!phoneValidation.valid) {
         showFormToast(
           `<strong>Error:</strong> ${phoneValidation.message}`,
-          'error'
+          "error"
         );
-        const noWAInput = document.getElementById('noWA');
-        noWAInput.classList.add('is-invalid');
+        const noWAInput = document.getElementById("noWA");
+        noWAInput.classList.add("is-invalid");
         noWAInput.focus();
         return false;
       }
 
       // Validasi tanggal
-      const tanggalStart = new Date(document.getElementById("tanggalStart").value);
+      const tanggalStart = new Date(
+        document.getElementById("tanggalStart").value
+      );
       const tanggalEnd = new Date(document.getElementById("tanggalEnd").value);
 
       if (tanggalEnd < tanggalStart) {
         showFormToast(
           "<strong>Error:</strong> Tanggal End tidak boleh lebih awal dari Tanggal Start.",
-          'error'
+          "error"
         );
-        const tanggalEndInput = document.getElementById('tanggalEnd');
-        tanggalEndInput.classList.add('is-invalid');
+        const tanggalEndInput = document.getElementById("tanggalEnd");
+        tanggalEndInput.classList.add("is-invalid");
         tanggalEndInput.focus();
         return false;
       }
@@ -1333,10 +1361,10 @@ async function editAnggota(anggotaId) {
       if (isNaN(latitude) || isNaN(longitude)) {
         showFormToast(
           "<strong>Error:</strong> Koordinat tidak valid. Klik peta untuk memilih lokasi.",
-          'error'
+          "error"
         );
-        const latitudeInput = document.getElementById('latitude');
-        latitudeInput.classList.add('is-invalid');
+        const latitudeInput = document.getElementById("latitude");
+        latitudeInput.classList.add("is-invalid");
         latitudeInput.focus();
         return false;
       }
@@ -1349,14 +1377,14 @@ async function editAnggota(anggotaId) {
         // Ambil dari dropdown jika ada
         const userSelect = document.getElementById("userSelect");
         userId = userSelect ? parseInt(userSelect.value) : null;
-        
+
         if (!userId) {
           showFormToast(
             "<strong>Error:</strong> Anggota harus terhubung dengan akun user.",
-            'error'
+            "error"
           );
-          const userSelectInput = document.getElementById('userSelect');
-          userSelectInput.classList.add('is-invalid');
+          const userSelectInput = document.getElementById("userSelect");
+          userSelectInput.classList.add("is-invalid");
           userSelectInput.focus();
           return false;
         }
@@ -1373,14 +1401,14 @@ async function editAnggota(anggotaId) {
         tanggalEnd: document.getElementById("tanggalEnd").value,
         status: document.getElementById("status").value,
         jenisSampah: document.getElementById("jenisSampah").value,
-        userId: userId
+        userId: userId,
       };
 
       console.log("Data awal:", initialValues);
       console.log("Data sekarang:", currentValues);
 
       // Cek apakah ada perubahan data
-      const hasChanges = 
+      const hasChanges =
         currentValues.nama !== initialValues.nama ||
         currentValues.alamat !== initialValues.alamat ||
         currentValues.noWA !== initialValues.noWA ||
@@ -1397,7 +1425,7 @@ async function editAnggota(anggotaId) {
       if (!hasChanges) {
         showFormToast(
           "Tidak ada perubahan data yang dilakukan. Simpan dibatalkan.",
-          'warning'
+          "warning"
         );
         return false; // Jangan tutup modal
       }
@@ -1417,10 +1445,7 @@ async function editAnggota(anggotaId) {
       };
 
       // Tampilkan loading
-      showFormToast(
-        "Menyimpan perubahan data anggota...",
-        'info'
-      );
+      showFormToast("Menyimpan perubahan data anggota...", "info");
 
       try {
         await fetchAPI(`${API.anggota}${anggotaId}/`, {
@@ -1431,7 +1456,8 @@ async function editAnggota(anggotaId) {
 
         showToast(
           `✅ Berhasil! Data anggota "${currentValues.nama}" berhasil diperbarui.`,
-          'success', 5000
+          "success",
+          5000
         );
 
         // Refresh data setelah 2 detik
@@ -1441,14 +1467,9 @@ async function editAnggota(anggotaId) {
         }, 2000);
 
         return true;
-        
       } catch (error) {
         console.error("Error updating anggota:", error);
-        showToast(
-          `<strong>Error:</strong> ${error.message}`,
-          'error',
-          3000
-        );
+        showToast(`<strong>Error:</strong> ${error.message}`, "error", 3000);
         return false;
       }
     });
@@ -1463,7 +1484,7 @@ async function editAnggota(anggotaId) {
     // Inisialisasi peta setelah modal ditampilkan
     setTimeout(() => {
       initializeAnggotaMapEdit(anggota.latitude, anggota.longitude);
-      
+
       // Setup Bootstrap validation untuk form
       setupFormValidation();
 
@@ -1475,28 +1496,31 @@ async function editAnggota(anggotaId) {
         }
       }, 500);
     }, 300);
-    
   } catch (error) {
     console.error("Error loading anggota data:", error);
     showToast(
       `<strong>Error:</strong> Gagal memuat data anggota: ${error.message}`,
-      'error',
+      "error",
       3000
     );
   }
 }
 
-window.resetToOriginalLocation = function() {
+window.resetToOriginalLocation = function () {
   // Mendapatkan koordinat asli dari form
   const latInput = document.getElementById("latitude");
   const lngInput = document.getElementById("longitude");
-  
+
   if (!latInput || !lngInput) return;
-  
+
   // Ambil nilai asli sebelum diubah
-  const originalLat = parseFloat(latInput.defaultValue || latInput.dataset.original || latInput.value);
-  const originalLng = parseFloat(lngInput.defaultValue || lngInput.dataset.original || lngInput.value);
-  
+  const originalLat = parseFloat(
+    latInput.defaultValue || latInput.dataset.original || latInput.value
+  );
+  const originalLng = parseFloat(
+    lngInput.defaultValue || lngInput.dataset.original || lngInput.value
+  );
+
   if (isNaN(originalLat) || isNaN(originalLng)) {
     showEditFormMessage(`
       <div class="alert alert-warning alert-dismissible fade show">
@@ -1507,28 +1531,31 @@ window.resetToOriginalLocation = function() {
     `);
     return;
   }
-  
+
   // Update koordinat
   updateAnggotaEditCoordinates(originalLat.toFixed(7), originalLng.toFixed(7));
-  
+
   // Update peta
   if (anggotaEditFormMap) {
     anggotaEditFormMap.setView([originalLat, originalLng], 15);
-    
+
     // Update marker
     if (anggotaEditFormMarker) {
       anggotaEditFormMarker.setLatLng([originalLat, originalLng]);
       anggotaEditFormMarker.setOpacity(1);
     }
-    
+
     // Hapus marker GPS jika ada
-    if (anggotaEditFormGPSMarker && anggotaEditFormMap.hasLayer(anggotaEditFormGPSMarker)) {
+    if (
+      anggotaEditFormGPSMarker &&
+      anggotaEditFormMap.hasLayer(anggotaEditFormGPSMarker)
+    ) {
       anggotaEditFormMap.removeLayer(anggotaEditFormGPSMarker);
       anggotaEditFormGPSMarker = null;
     }
-    
+
     updateAnggotaEditGPSStatus("manual");
-    
+
     // Refresh peta
     setTimeout(() => {
       if (anggotaEditFormMap && anggotaEditFormMap.invalidateSize) {
@@ -1536,7 +1563,7 @@ window.resetToOriginalLocation = function() {
       }
     }, 100);
   }
-  
+
   showEditFormMessage(`
     <div class="alert alert-info alert-dismissible fade show">
       <i class="bi bi-check-circle-fill me-2"></i>
@@ -1783,7 +1810,7 @@ async function initializeAnggotaMapEdit(defaultLat, defaultLng) {
 
 async function getGPSLocationForAnggotaEdit() {
   const btnGPS = document.getElementById("btnGetGPSLocationEdit");
-  
+
   if (!btnGPS || !anggotaEditFormMap) {
     showEditFormMessage(`
       <div class="alert alert-danger alert-dismissible fade show">
@@ -1798,7 +1825,8 @@ async function getGPSLocationForAnggotaEdit() {
   // Simpan state tombol
   const originalText = btnGPS.innerHTML;
   btnGPS.disabled = true;
-  btnGPS.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Mendapatkan lokasi...';
+  btnGPS.innerHTML =
+    '<i class="bi bi-hourglass-split me-1"></i> Mendapatkan lokasi...';
 
   try {
     const result = await renderGPSForMap(
@@ -1811,13 +1839,13 @@ async function getGPSLocationForAnggotaEdit() {
       {
         moveToLocation: true,
         zoomLevel: 16,
-        showAccuracyCircle: true
+        showAccuracyCircle: true,
       }
     );
 
     // Update koordinat di form edit
     updateAnggotaEditCoordinates(result.lat.toFixed(7), result.lng.toFixed(7));
-    
+
     // Simpan reference ke marker GPS
     anggotaEditFormGPSMarker = result.marker;
 
@@ -1834,14 +1862,13 @@ async function getGPSLocationForAnggotaEdit() {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     `);
-
   } catch (error) {
     console.error("GPS Error:", error);
-    
+
     showEditFormMessage(`
       <div class="alert alert-danger alert-dismissible fade show">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <strong>${error.message || 'Gagal mendapatkan lokasi GPS'}</strong>
+        <strong>${error.message || "Gagal mendapatkan lokasi GPS"}</strong>
         <small class="d-block">
           Pastikan browser memiliki akses lokasi dan GPS perangkat aktif.
         </small>
@@ -1852,9 +1879,8 @@ async function getGPSLocationForAnggotaEdit() {
         </div>
       </div>
     `);
-    
-    updateAnggotaEditGPSStatus('error');
-    
+
+    updateAnggotaEditGPSStatus("error");
   } finally {
     // Reset tombol
     btnGPS.disabled = false;
@@ -1862,13 +1888,13 @@ async function getGPSLocationForAnggotaEdit() {
   }
 }
 
-window.copyCoordinatesToClipboard = async function(coordinates) {
+window.copyCoordinatesToClipboard = async function (coordinates) {
   try {
     await navigator.clipboard.writeText(coordinates);
-    showToast('Koordinat berhasil disalin ke clipboard', 'success', 2000);
+    showToast("Koordinat berhasil disalin ke clipboard", "success", 2000);
   } catch (err) {
-    console.error('Gagal menyalin koordinat:', err);
-    showToast('Gagal menyalin koordinat', 'error', 2000);
+    console.error("Gagal menyalin koordinat:", err);
+    showToast("Gagal menyalin koordinat", "error", 2000);
   }
 };
 
@@ -1931,7 +1957,7 @@ function updateAnggotaEditCoordinates(lat, lng) {
   if (latInput && lngInput) {
     latInput.value = lat;
     lngInput.value = lng;
-    
+
     // Tandai bahwa koordinat telah diubah
     latInput.dataset.changed = "true";
     lngInput.dataset.changed = "true";
@@ -2063,7 +2089,9 @@ async function viewDetail(anggotaId) {
     });
 
     // Generate HTML untuk peta
-    const mapHTML = anggota.latitude && anggota.longitude ? `
+    const mapHTML =
+      anggota.latitude && anggota.longitude
+        ? `
       <div class="col-12 mt-3">
         <div class="card border-success">
           <div class="card-header bg-success bg-opacity-10 py-2">
@@ -2084,7 +2112,8 @@ async function viewDetail(anggotaId) {
           </div>
         </div>
       </div>
-    ` : `
+    `
+        : `
       <div class="col-12 mt-3">
         <div class="card border-warning">
           <div class="card-header bg-warning bg-opacity-10 py-2">
@@ -2127,8 +2156,8 @@ async function viewDetail(anggotaId) {
                     <button class="btn btn-success mb-2" onclick="chatWhatsApp('${
                       anggota.noWA
                     }', 'Halo ${
-                          anggota.nama || ""
-                        }, ini dari admin Bank Sampah')">
+                      anggota.nama || ""
+                    }, ini dari admin Bank Sampah')">
                       <i class="bi bi-whatsapp me-1"></i>Chat via WhatsApp
                     </button>
                   `
@@ -2338,33 +2367,33 @@ async function viewDetail(anggotaId) {
 async function loadDetailMap(anggota) {
   const mapId = `detailMap-${anggota.idAnggota}`;
   const selector = `#${mapId}`; // Ini yang benar
-  
+
   try {
     await ensureLeafletLoaded();
-    
+
     // Tunggu element tersedia - FIX: gunakan selector yang benar
     await waitForElement(selector);
-    
+
     const lat = parseFloat(anggota.latitude);
     const lng = parseFloat(anggota.longitude);
-    
+
     if (isNaN(lat) || isNaN(lng)) {
       throw new Error("Koordinat tidak valid");
     }
-    
+
     // Inisialisasi peta
     const map = L.map(mapId).setView([lat, lng], 15);
-    
+
     // Simpan peta ke variabel global untuk akses nanti
     if (!window.detailMaps) window.detailMaps = {};
     window.detailMaps[mapId] = map;
-    
+
     // Tambahkan tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© OpenStreetMap contributors',
+      attribution: "© OpenStreetMap contributors",
       maxZoom: 19,
     }).addTo(map);
-    
+
     // Tambahkan marker dengan warna berdasarkan status
     const markerColor = anggota.status === "aktif" ? "#28a745" : "#dc3545";
     const markerIcon = L.divIcon({
@@ -2390,37 +2419,39 @@ async function loadDetailMap(anggota) {
       iconSize: [50, 50],
       iconAnchor: [25, 25],
     });
-    
+
     const marker = L.marker([lat, lng], {
       icon: markerIcon,
     }).addTo(map);
-    
+
     // Tambahkan popup dengan info anggota
-    marker.bindPopup(`
+    marker
+      .bindPopup(
+        `
       <div style="min-width: 200px;">
         <div class="d-flex align-items-center mb-2">
           <div class="bg-success bg-opacity-10 p-2 rounded me-2">
             <i class="bi bi-person-circle text-success"></i>
           </div>
           <div>
-            <h6 class="mb-0 fw-semibold">${anggota.nama || 'Tidak ada nama'}</h6>
+            <h6 class="mb-0 fw-semibold">${anggota.nama || "Tidak ada nama"}</h6>
             <small class="text-muted">ID: ${anggota.idAnggota}</small>
           </div>
         </div>
         <div class="mb-2">
           <small class="text-muted">Alamat:</small>
-          <div class="small">${anggota.alamat?.substring(0, 80) || 'Tidak ada alamat'}...</div>
+          <div class="small">${anggota.alamat?.substring(0, 80) || "Tidak ada alamat"}...</div>
         </div>
         <div class="row g-2 mb-2">
           <div class="col-6">
             <small class="text-muted">Status:</small>
-            <span class="badge ${anggota.status === 'aktif' ? 'bg-success' : 'bg-danger'}">
-              ${anggota.status === 'aktif' ? 'Aktif' : 'Non-Aktif'}
+            <span class="badge ${anggota.status === "aktif" ? "bg-success" : "bg-danger"}">
+              ${anggota.status === "aktif" ? "Aktif" : "Non-Aktif"}
             </span>
           </div>
           <div class="col-6">
             <small class="text-muted">Jenis:</small>
-            <span class="badge bg-info">${anggota.jenisSampah || '-'}</span>
+            <span class="badge bg-info">${anggota.jenisSampah || "-"}</span>
           </div>
         </div>
         <div class="mt-2">
@@ -2428,19 +2459,20 @@ async function loadDetailMap(anggota) {
           <div class="font-monospace small">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
         </div>
       </div>
-    `).openPopup();
-    
+    `
+      )
+      .openPopup();
+
     // Tambahkan tombol kontrol di sudut kanan atas peta
-    const controlDiv = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-    
-    const control = L.control({ position: 'topright' });
-    control.onAdd = function(map) {
+    const controlDiv = L.DomUtil.create("div", "leaflet-control leaflet-bar");
+
+    const control = L.control({ position: "topright" });
+    control.onAdd = function (map) {
       return controlDiv;
     };
     control.addTo(map);
-    
+
     console.log("Detail map loaded successfully");
-    
   } catch (error) {
     console.error("Error loading detail map:", error);
     const mapContainer = document.getElementById(mapId);
@@ -2461,12 +2493,11 @@ async function loadDetailMap(anggota) {
 }
 
 // Fungsi untuk retry load peta
-window.retryLoadDetailMap = function(anggota) {
+window.retryLoadDetailMap = function (anggota) {
   loadDetailMap(anggota);
 };
 
-
-window.resetViewDetailMap = function(mapId, lat, lng) {
+window.resetViewDetailMap = function (mapId, lat, lng) {
   const map = window.detailMaps ? window.detailMaps[mapId] : null;
   if (map) {
     map.setView([lat, lng], 15);
@@ -2503,7 +2534,7 @@ async function deleteAnggota(anggotaId) {
     const anggota = await fetchAPI(`${API.anggota}${anggotaId}/`, {
       headers: getAuthHeaders(),
     });
-    
+
     showConfirmModal(
       `
         <div class="text-center py-3">
@@ -2525,20 +2556,27 @@ async function deleteAnggota(anggotaId) {
           });
 
           // Gunakan toast untuk notifikasi sukses
-          showToast(`Anggota ${anggota.nama} berhasil dihapus`, 'success', 5000);
-          
+          showToast(
+            `Anggota ${anggota.nama} berhasil dihapus`,
+            "success",
+            5000
+          );
+
           // Refresh data
           loadAnggotaWithMap();
-          
         } catch (error) {
           console.error("Error deleting anggota:", error);
-          showToast(`Gagal menghapus anggota: ${error.message}`, 'danger', 5000);
+          showToast(
+            `Gagal menghapus anggota: ${error.message}`,
+            "danger",
+            5000
+          );
         }
       }
     );
   } catch (error) {
     console.error("Error loading anggota for deletion:", error);
-    showNotif(`Gagal memuat data anggota: ${error.message}`, 'danger');
+    showNotif(`Gagal memuat data anggota: ${error.message}`, "danger");
   }
 }
 

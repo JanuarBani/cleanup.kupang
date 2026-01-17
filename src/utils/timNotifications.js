@@ -82,7 +82,7 @@ export class TimNotifications {
             
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.role !== 'tim_angkut') {
-                showToast('error', 'Hanya tim angkut yang dapat mengaktifkan notifikasi');
+                showToast('Hanya tim angkut yang dapat mengaktifkan notifikasi', 'error');
                 return false;
             }
             
@@ -120,13 +120,13 @@ export class TimNotifications {
                 // Start polling
                 this.startNotificationPolling();
                 
-                showToast('success', 'Notifikasi tim angkut telah diaktifkan! Anda akan mendapatkan pemberitahuan tentang jadwal dan tugas.');
+                showToast('Notifikasi tim angkut telah diaktifkan! Anda akan mendapatkan pemberitahuan tentang jadwal dan tugas.', 'success');
                 
                 return true;
             } else {
                 console.error("❌ Failed to enable tim notifications:", result.error);
                 await this.updateNotificationUI('error');
-                showToast('error', 'Gagal mengaktifkan notifikasi');
+                showToast('Gagal mengaktifkan notifikasi', 'error');
                 return false;
             }
             
@@ -148,7 +148,7 @@ export class TimNotifications {
             }
             
             await this.updateNotificationUI(uiStatus);
-            showToast('error', errorMessage);
+            showToast(errorMessage, 'error');
             return false;
         }
     }
@@ -174,20 +174,20 @@ export class TimNotifications {
                 // Update UI
                 await this.updateNotificationUI('unsubscribed');
                 
-                showToast('info', 'Notifikasi tim angkut telah dinonaktifkan');
+                showToast('Notifikasi tim angkut telah dinonaktifkan', 'info');
                 
                 return true;
             } else {
                 console.error("❌ Failed to disable tim notifications:", result.error);
                 await this.updateNotificationUI('error');
-                showToast('error', 'Gagal menonaktifkan notifikasi');
+                showToast('Gagal menonaktifkan notifikasi', 'error');
                 return false;
             }
             
         } catch (error) {
             console.error('❌ Error disabling tim notifications:', error);
             await this.updateNotificationUI('error');
-            showToast('error', 'Terjadi kesalahan saat menonaktifkan notifikasi');
+            showToast('Terjadi kesalahan saat menonaktifkan notifikasi', 'error');
             return false;
         }
     }
@@ -206,7 +206,7 @@ export class TimNotifications {
             
         } catch (error) {
             console.error('❌ Error toggling tim notifications:', error);
-            showToast('error', 'Gagal mengubah pengaturan notifikasi');
+            showToast('Gagal mengubah pengaturan notifikasi', 'error');
             return false;
         }
     }
@@ -345,14 +345,14 @@ export class TimNotifications {
             
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.role !== 'tim_angkut') {
-                showToast('error', 'Hanya tim angkut yang dapat mengirim notifikasi test');
+                showToast('Hanya tim angkut yang dapat mengirim notifikasi test', 'error');
                 return;
             }
             
             // Cek subscription dulu
             const isSubscribed = await webPushManager.checkSubscription();
             if (!isSubscribed) {
-                showToast('warning', 'Harap aktifkan notifikasi terlebih dahulu');
+                showToast('Harap aktifkan notifikasi terlebih dahulu', 'warning');
                 return;
             }
             
@@ -360,7 +360,7 @@ export class TimNotifications {
             const result = await webPushManager.sendTestNotification();
             
             if (result.success) {
-                showToast('success', 'Notifikasi test berhasil dikirim!');
+                showToast('Notifikasi test berhasil dikirim!', 'success', 5000);
                 console.log("✅ Test notification sent successfully");
             } else {
                 console.error("❌ Failed to send test notification:", result.message);
@@ -377,97 +377,187 @@ export class TimNotifications {
                 errorMessage = 'Sesi login telah habis. Silakan login ulang.';
             }
             
-            showToast('error', errorMessage);
+            showToast(errorMessage, 'error');
         }
     }
 
-    async markAllTimNotificationsAsRead() {
-        try {
-            console.log("📝 Marking all tim notifications as read...");
+    // async markAllTimNotificationsAsRead() {
+    //     try {
+    //         console.log("📝 Marking all tim notifications as read...");
             
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const authHeaders = getAuthHeaders();
+    //         const user = JSON.parse(localStorage.getItem('user') || '{}');
+    //         const authHeaders = getAuthHeaders();
             
-            // Gunakan endpoint yang benar sesuai Django ViewSet
-            const markAllReadUrl = `${API.notifications}mark-all-read/`;
-            console.log('Using URL:', markAllReadUrl);
+    //         // Gunakan endpoint yang benar sesuai Django ViewSet
+    //         const markAllReadUrl = `${API.notifications}mark-all-read/`;
+    //         console.log('Using URL:', markAllReadUrl);
             
-            // Kirim POST request
-            const response = await fetch(markAllReadUrl, {
-                method: 'POST',
-                headers: {
-                    ...authHeaders,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
-            });
+    //         // Kirim POST request
+    //         const response = await fetch(markAllReadUrl, {
+    //             method: 'POST',
+    //             headers: {
+    //                 ...authHeaders,
+    //                 'Content-Type': 'application/json'
+    //             },
+    //             credentials: 'include'
+    //         });
             
-            console.log('Response status:', response.status);
+    //         console.log('Response status:', response.status);
             
-            if (!response.ok) {
-                // Debug: coba lihat response body untuk info lebih lanjut
-                const errorText = await response.text();
-                console.error('Error response body:', errorText);
+    //         if (!response.ok) {
+    //             // Debug: coba lihat response body untuk info lebih lanjut
+    //             const errorText = await response.text();
+    //             console.error('Error response body:', errorText);
                 
-                throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
-            }
+    //             throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+    //         }
             
-            const data = await response.json();
-            console.log('Response data:', data);
+    //         const data = await response.json();
+    //         console.log('Response data:', data);
             
-            // Update UI lokal
-            this.unreadNotifications = 0;
-            this.updateNotificationBadge();
+    //         // Update UI lokal
+    //         this.unreadNotifications = 0;
+    //         this.updateNotificationBadge();
             
-            showToast('success', `Semua notifikasi (${data.count || 0}) telah ditandai sebagai dibaca`);
-            return true;
+    //         showToast(`Semua notifikasi (${data.count || 0}) telah ditandai sebagai dibaca`, 'success', 5000);
+    //         return true;
 
-        } catch (error) {
-            console.error('Error marking all notifications as read:', error);
+    //     } catch (error) {
+    //         console.error('Error marking all notifications as read:', error);
             
-            // Coba fallback: update individual notifications
-            try {
-                console.log('🔄 Trying fallback: marking individual notifications...');
+    //         // Coba fallback: update individual notifications
+    //         try {
+    //             console.log('🔄 Trying fallback: marking individual notifications...');
                 
-                const notifications = await this.fetchTimNotifications();
-                const unreadNotifications = notifications.filter(n => !n.read);
+    //             const notifications = await this.fetchTimNotifications();
+    //             const unreadNotifications = notifications.filter(n => !n.read);
                 
-                if (unreadNotifications.length > 0) {
-                    const authHeaders = getAuthHeaders();
+    //             if (unreadNotifications.length > 0) {
+    //                 const authHeaders = getAuthHeaders();
                     
-                    // Update setiap notifikasi yang belum dibaca
-                    for (const notification of unreadNotifications) {
-                        try {
-                            const markReadUrl = `${API.notificationsMarkRead}${notification.id}/mark_read/`;
-                            await fetch(markReadUrl, {
-                                method: 'POST',
-                                headers: authHeaders,
-                                credentials: 'include'
-                            });
-                        } catch (error) {
-                            console.warn(`Failed to mark notification ${notification.id} as read:`, error.message);
-                        }
-                    }
+    //                 // Update setiap notifikasi yang belum dibaca
+    //                 for (const notification of unreadNotifications) {
+    //                     try {
+    //                         const markReadUrl = `${API.notificationsMarkRead}${notification.id}/mark_read/`;
+    //                         await fetch(markReadUrl, {
+    //                             method: 'POST',
+    //                             headers: authHeaders,
+    //                             credentials: 'include'
+    //                         });
+    //                     } catch (error) {
+    //                         console.warn(`Failed to mark notification ${notification.id} as read:`, error.message);
+    //                     }
+    //                 }
+    //             }
+                
+    //             // Update UI lokal
+    //             this.unreadNotifications = 0;
+    //             this.updateNotificationBadge();
+                
+    //             showToast('Semua notifikasi telah ditandai sebagai dibaca (fallback)', 'success');
+    //             return true;
+                
+    //         } catch (fallbackError) {
+    //             console.error('Fallback also failed:', fallbackError);
+                
+    //             // Ultimate fallback: hanya update lokal
+    //             this.unreadNotifications = 0;
+    //             this.updateNotificationBadge();
+    //             showToast('Notifikasi ditandai sebagai dibaca secara lokal', 'info');
+    //             return true;
+    //         }
+    //     }
+    // }
+
+    async markAllTimNotificationsAsRead() {
+            try {
+                console.log("📝 Marking all admin notifications as read...");
+                
+                if (!this.user || !this.user.id) {
+                    throw new Error('User not found');
                 }
+                
+                const authHeaders = getAuthHeaders();
+                
+                // Gunakan endpoint yang benar
+                const markAllReadUrl = API.notificationsMarkAllRead || `${API.notifications}mark-all-read/`;
+                console.log('Using URL:', markAllReadUrl);
+                
+                // Kirim POST request
+                const response = await fetch(markAllReadUrl, {
+                    method: 'POST',
+                    headers: {
+                        ...authHeaders,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
                 
                 // Update UI lokal
                 this.unreadNotifications = 0;
                 this.updateNotificationBadge();
                 
-                showToast('success', 'Semua notifikasi telah ditandai sebagai dibaca (fallback)');
+                showToast(`Semua notifikasi (${data.count || 0}) telah ditandai sebagai dibaca`, 'success');
                 return true;
+    
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
                 
-            } catch (fallbackError) {
-                console.error('Fallback also failed:', fallbackError);
-                
-                // Ultimate fallback: hanya update lokal
-                this.unreadNotifications = 0;
-                this.updateNotificationBadge();
-                showToast('info', 'Notifikasi ditandai sebagai dibaca secara lokal');
-                return true;
+                // Fallback: update individual notifications
+                try {
+                    console.log('🔄 Trying fallback: marking individual notifications...');
+                    
+                    const notifications = await this.fetchNotifications();
+                    const unreadNotifications = notifications.filter(n => !n.read);
+                    
+                    if (unreadNotifications.length > 0) {
+                        const authHeaders = getAuthHeaders();
+                        
+                        // Update setiap notifikasi yang belum dibaca
+                        for (const notification of unreadNotifications) {
+                            try {
+                                const markReadUrl = `${API.notifications}${notification.id}/mark_read/`;
+                                await fetch(markReadUrl, {
+                                    method: 'POST',
+                                    headers: authHeaders,
+                                    credentials: 'include'
+                                });
+                            } catch (error) {
+                                console.warn(`Failed to mark notification ${notification.id} as read:`, error.message);
+                            }
+                        }
+                    }
+                    
+                    // Update UI lokal
+                    this.unreadNotifications = 0;
+                    this.updateNotificationBadge();
+                    
+                    showToast('Semua notifikasi telah ditandai sebagai dibaca (fallback)', 'success');
+                    return true;
+                    
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                    
+                    // Ultimate fallback: hanya update lokal
+                    this.unreadNotifications = 0;
+                    this.updateNotificationBadge();
+                    showToast('Notifikasi ditandai sebagai dibaca secara lokal', 'info');
+                    return true;
+                }
             }
         }
-    }
 
     // ==================== NOTIFICATION ACTIONS ====================
 
@@ -515,7 +605,7 @@ export class TimNotifications {
                 this.updateNotificationBadge();
             }
             
-            showToast('success', 'Notifikasi berhasil dihapus');
+            showToast('Notifikasi berhasil dihapus', 'success');
             console.log(`✅ Tim notification ${notificationId} deleted successfully`);
             
             return true;
@@ -526,7 +616,7 @@ export class TimNotifications {
             // Fallback untuk development
             const mockDeleted = this.handleLocalTimDelete(notificationId);
             if (mockDeleted) {
-                showToast('info', 'Notifikasi dihapus (mode pengembangan)');
+                showToast('Notifikasi dihapus (mode pengembangan)', 'info');
                 return true;
             }
             
@@ -537,7 +627,7 @@ export class TimNotifications {
                 errorMessage = 'Anda tidak memiliki izin untuk menghapus notifikasi';
             }
             
-            showToast('error', errorMessage);
+            showToast(errorMessage, 'error');
             return false;
         }
     }
@@ -609,7 +699,7 @@ export class TimNotifications {
             }
             
             // Tampilkan loading
-            showToast('info', 'Menghapus semua notifikasi tim...', 3000);
+            showToast('Menghapus semua notifikasi tim...', 'info', 3000);
             
             const authHeaders = getAuthHeaders();
             
@@ -636,7 +726,7 @@ export class TimNotifications {
                 this.unreadNotifications = 0;
                 this.updateNotificationBadge();
                 
-                showToast('success', 'Semua riwayat notifikasi tim telah dihapus');
+                showToast('Semua riwayat notifikasi tim telah dihapus', 'success', 3000);
                 console.log("✅ All tim notifications deleted successfully");
                 
                 return true;
@@ -669,7 +759,7 @@ export class TimNotifications {
             this.unreadNotifications = 0;
             this.updateNotificationBadge();
             
-            showToast('info', 'Riwayat notifikasi tim direset (mode pengembangan)');
+            showToast('Riwayat notifikasi tim direset (mode pengembangan)', 'info');
             return true;
         }
     }
@@ -683,7 +773,7 @@ export class TimNotifications {
             
             if (notifications.length === 0) {
                 console.log('Tidak ada notifikasi tim untuk dihapus');
-                showToast('info', 'Tidak ada notifikasi untuk dihapus');
+                showToast('Tidak ada notifikasi untuk dihapus','info');
                 return true;
             }
             
@@ -715,7 +805,7 @@ export class TimNotifications {
                 message += `, ${failCount} gagal`;
             }
             
-            showToast('success', message);
+            showToast(message, 'success');
             console.log(`✅ Deleted ${successCount} tim notifications (${failCount} failed)`);
             
             return successCount > 0;
@@ -726,7 +816,7 @@ export class TimNotifications {
             // Reset lokal
             this.unreadNotifications = 0;
             this.updateNotificationBadge();
-            showToast('info', 'Notifikasi tim direset secara lokal');
+            showToast('Notifikasi tim direset secara lokal', 'info');
             
             return true;
         }
@@ -754,7 +844,7 @@ export class TimNotifications {
             
         } catch (error) {
             console.error('❌ Error showing tim notification modal:', error);
-            showToast('error', 'Gagal memuat notifikasi');
+            showToast('Gagal memuat notifikasi', 'error');
         }
     }
 
@@ -1110,7 +1200,7 @@ export class TimNotifications {
                     } else {
                         button.disabled = false;
                         button.innerHTML = '<i class="bi bi-check"></i> Tandai Dibaca';
-                        showToast('error', 'Gagal menandai notifikasi sebagai dibaca');
+                        showToast('Gagal menandai notifikasi sebagai dibaca', 'error');
                     }
                 });
             });
@@ -1135,7 +1225,7 @@ export class TimNotifications {
                     } else {
                         button.disabled = false;
                         button.innerHTML = '<i class="bi bi-trash"></i> Hapus';
-                        showToast('error', 'Gagal menghapus notifikasi');
+                        showToast('Gagal menghapus notifikasi', 'error');
                     }
                 });
             });

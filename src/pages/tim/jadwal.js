@@ -305,6 +305,19 @@ function renderDetailTableTimAngkut() {
     
     if (!container) return;
 
+    // Urutkan data berdasarkan tanggal_jadwal (terbaru ke terlama)
+    detailAllData.sort((a, b) => {
+        const dateA = new Date(a.tanggal_jadwal);
+        const dateB = new Date(b.tanggal_jadwal);
+
+        // Jika tanggal tidak valid, dorong ke bawah
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
+
+        return dateB - dateA; // DESC (new → old)
+    });
+
+
     // Hitung data yang akan ditampilkan
     const totalData = detailAllData.length;
     const totalPages = Math.ceil(totalData / detailPerPage);

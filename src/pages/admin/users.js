@@ -2238,6 +2238,18 @@ function updateFormFieldsBasedOnRole(role, formId) {
                         Longitude wajib diisi
                     </div>
                 </div>
+
+                <div data-role-specific class="col-md-12">
+                  <label class="form-label">Pilih Lokasi pada Peta <span class="text-danger">*</span></label>
+                  <div id="map" style="height: 300px; border-radius: 8px;"></div>
+
+                  <button type="button"
+                          class="btn btn-outline-primary btn-sm mt-2"
+                          id="btnGetLocation">
+                      📍 Ambil Lokasi Saya
+                  </button>
+              </div>
+
                 
                 <div data-role-specific class="col-md-6">
                     <label for="tanggalStart" class="form-label">Tanggal Mulai <span class="text-danger">*</span></label>
@@ -2334,6 +2346,143 @@ function updateFormFieldsBasedOnRole(role, formId) {
     }
   }
 
+  // Init Leaflet hanya untuk role anggota
+  if (role === "anggota") {
+    setTimeout(() => {
+      initAnggotaLeafletMap();
+    }, 150);
+  }
+
   // Setup validation for new fields
   setupFormValidation(formId);
 }
+
+let anggotaMap = null;
+let anggotaMarker = null;
+
+function initAnggotaLeafletMap() {
+  const latInput = document.getElementById("latitude");
+  const lngInput = document.getElementById("longitude");
+  const mapContainer = document.getElementById("map");
+
+  if (!latInput || !lngInput || !mapContainer) return;
+
+  // Destroy map lama jika ada
+  if (anggotaMap) {
+    anggotaMap.remove();
+    anggotaMap = null;
+  }
+
+  const defaultLat = -10.1772; // Kupang (atau sesuaikan)
+  const defaultLng = 123.6070;
+
+  anggotaMap = L.map("map").setView([defaultLat, defaultLng], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(anggotaMap);
+
+  anggotaMarker = L.marker([defaultLat, defaultLng], {
+    draggable: true,
+  }).addTo(anggotaMap);
+
+  // Klik peta
+  anggotaMap.on("click", (e) => {
+    const { lat, lng } = e.latlng;
+    anggotaMarker.setLatLng([lat, lng]);
+    latInput.value = lat.toFixed(6);
+    lngInput.value = lng.toFixed(6);
+  });
+
+  // Drag marker
+  anggotaMarker.on("dragend", () => {
+    const pos = anggotaMarker.getLatLng();
+    latInput.value = pos.lat.toFixed(6);
+    lngInput.value = pos.lng.toFixed(6);
+  });
+
+  // Tombol GPS dengan izin dan animasi
+  document
+    .getElementById("btnGetLocation")
+    ?.addEventListener("click", async () => {
+      const latInput = document.getElementById("latitude");
+      const lngInput = document.getElementById("longitude");
+
+      if (!navigator.geolocation) {
+        alert("Browser tidak mendukung GPS");
+        return;
+      }
+
+      try {
+        // Cek izin geolocation (modern browsers)
+        if (navigator.permissions) {
+          const status = await navigator.permissions.query({ name: "geolocation" });
+          if (status.state === "denied") {
+            alert("Izin lokasi ditolak. Mohon izinkan akses lokasi.");
+            return;
+          }
+        }
+
+        // Tampilkan loading / feedback
+        const btn = document.getElementById("btnGetLocation");
+        btn.disabled = true;
+        const originalText = btn.innerText;
+        btn.innerText = "📍 Mengambil lokasi...";
+
+        // Ambil posisi
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // Smooth move marker ke lokasi baru (animasi)
+            const currentPos = anggotaMarker.getLatLng();
+            const steps = 20; // jumlah frame animasi
+            let i = 0;
+
+            const latStep = (lat - currentPos.lat) / steps;
+            const lngStep = (lng - currentPos.lng) / steps;
+
+            const animate = setInterval(() => {
+              i++;
+              anggotaMarker.setLatLng([
+                currentPos.lat + latStep * i,
+                currentPos.lng + lngStep * i
+              ]);
+              anggotaMap.setView([
+                currentPos.lat + latStep * i,
+                currentPos.lng + lngStep * i
+              ], 16);
+
+              if (i >= steps) clearInterval(animate);
+            }, 50); // 50ms per frame → total 1 detik
+
+            // Update input setelah animasi selesai
+            setTimeout(() => {
+              latInput.value = lat.toFixed(6);
+              lngInput.value = lng.toFixed(6);
+              btn.disabled = false;
+              btn.innerText = originalText;
+            }, steps * 50 + 50); // +50ms buffer
+
+          },
+          (err) => {
+            console.error("Error mendapatkan lokasi:", err);
+            alert("Gagal mengambil lokasi. Pastikan GPS aktif dan izinkan akses.");
+            btn.disabled = false;
+            btn.innerText = originalText;
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 30000,
+            maximumAge: 0
+          }
+        );
+
+      } catch (error) {
+        console.error("Error geolocation:", error);
+        alert("Terjadi kesalahan saat meminta lokasi");
+      }
+    });
+}
+

@@ -106,7 +106,7 @@ export function registerAnggotaPage() {
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label fw-semibold">Email</label>
                                             <input id="email" type="email" class="form-control form-control-lg"
-                                                   placeholder="nama@email.com">
+                                                   placeholder="nama@email.com" required>
                                             <div class="invalid-feedback"></div>
                                         </div>
 
@@ -302,15 +302,50 @@ function setupRealtimeValidation() {
     const nama = document.getElementById("nama");
     const alamat = document.getElementById("alamat");
 
-    // EMAIL
+   // EMAIL - MODIFIED: sekarang wajib
     email.addEventListener("input", () => {
-        if (!email.value) {
-            email.classList.remove("is-valid", "is-invalid");
+        const value = email.value.trim();
+        
+        // Jika kosong → error (karena required)
+        if (!value) {
+            setInvalid(email, "Email wajib diisi");
             return;
         }
-        regexEmail.test(email.value)
-            ? setValid(email)
-            : setInvalid(email, "Email harus mengandung @ dan domain valid");
+        
+        // Validasi format
+        if (!regexEmail.test(value)) {
+            setInvalid(email, "Format email tidak valid (contoh: nama@domain.com)");
+            return;
+        }
+        
+        // Valid
+        setValid(email);
+    });
+
+    // NAMA - MODIFIED: sudah ada, pastikan validasi kosong
+    nama.addEventListener("input", () => {
+        const value = nama.value.trim();
+
+        // Jika kosong → error (karena required)
+        if (!value) {
+            setInvalid(nama, "Nama lengkap wajib diisi");
+            return;
+        }
+
+        // minimal 3 karakter
+        if (value.length < 3) {
+            setInvalid(nama, "Nama minimal 3 karakter");
+            return;
+        }
+
+        // hanya huruf & spasi
+        if (!regexNama.test(value)) {
+            setInvalid(nama, "Nama hanya boleh huruf dan spasi");
+            return;
+        }
+
+        // valid
+        setValid(nama);
     });
 
     // NO WA
@@ -356,32 +391,6 @@ function setupRealtimeValidation() {
         regexPassword.test(password.value)
             ? setValid(password)
             : setInvalid(password, "Min 6 karakter, ada huruf & angka");
-    });
-
-    // NAMA
-    nama.addEventListener("input", () => {
-        const value = nama.value.trim();
-
-        // kosong → reset state
-        if (!value) {
-            nama.classList.remove("is-valid", "is-invalid");
-            return;
-        }
-
-        // minimal 3 karakter
-        if (value.length < 3) {
-            setInvalid(nama, "Nama minimal 3 karakter");
-            return;
-        }
-
-        // hanya huruf & spasi
-        if (!regexNama.test(value)) {
-            setInvalid(nama, "Nama hanya boleh huruf dan spasi");
-            return;
-        }
-
-        // valid
-        setValid(nama);
     });
 }
 
@@ -685,7 +694,7 @@ async function register(e) {
                     </div>
                 </div>
                 <hr>
-                <p class="mb-0">Anda akan dialihkan ke halaman login dalam 3 detik...</p>
+                <p class="mb-0">Anda akan dialihkan ke halaman login dalam 5 detik...</p>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         `;
@@ -699,7 +708,7 @@ async function register(e) {
         // Redirect ke login
         setTimeout(() => {
             window.location.hash = "#/login";
-        }, 3000);
+        }, 5000);
 
     } catch (err) {
         // Ini hanya untuk error global (bukan username duplikat)

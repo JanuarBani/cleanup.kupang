@@ -409,11 +409,6 @@ function showDetailModal(laporanData) {
                                 </button>
                             ` : ''}
                             
-                            <button onclick="drawRouteToSampah()" 
-                                    style="background: #FF9800; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 16px;">🛣️</span> Gambar Rute
-                            </button>
-                            
                             <button onclick="closeLaporanDetailModal()" 
                                     style="background: #757575; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                 Tutup
@@ -636,43 +631,6 @@ async function updateUserLocation() {
         }
     } catch (error) {
         alert(`⚠️ Gagal update lokasi: ${error.message}`);
-    }
-}
-
-// Fungsi untuk gambar rute
-function drawRouteToSampah() {
-    if (window.userMarker && window.sampahMarker && window.mapInstance) {
-        const userLatLng = window.userMarker.getLatLng();
-        const sampahLatLng = window.sampahMarker.getLatLng();
-        
-        // Hapus polyline lama jika ada
-        if (window.routePolyline) {
-            window.mapInstance.removeLayer(window.routePolyline);
-        }
-        
-        // Gambar polyline baru
-        window.routePolyline = L.polyline([userLatLng, sampahLatLng], {
-            color: '#FF9800',
-            weight: 3,
-            opacity: 0.7
-        }).addTo(window.mapInstance);
-        
-        // Hitung jarak
-        const distance = calculateDistance(
-            userLatLng.lat, userLatLng.lng,
-            sampahLatLng.lat, sampahLatLng.lng
-        );
-        
-        // Tampilkan popup di tengah garis
-        const midPoint = [
-            (userLatLng.lat + sampahLatLng.lat) / 2,
-            (userLatLng.lng + sampahLatLng.lng) / 2
-        ];
-        
-        L.popup()
-            .setLatLng(midPoint)
-            .setContent(`<div style="text-align: center;"><strong>Jarak: ${updateDistanceInfo(distance)}</strong><br>Saya → Lokasi Sampah</div>`)
-            .openOn(window.mapInstance);
     }
 }
 
@@ -972,5 +930,4 @@ window.centerToSampahMarker = centerToSampahMarker;
 window.centerToUserMarker = centerToUserMarker;
 window.fitBothMarkers = fitBothMarkers;
 window.updateUserLocation = updateUserLocation;
-window.drawRouteToSampah = drawRouteToSampah;
 window.showDirections = showDirections;

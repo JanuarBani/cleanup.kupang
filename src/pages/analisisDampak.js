@@ -461,7 +461,11 @@ function populatePageData(data) {
     const totalLaporan = data.ringkasan?.total_laporan || 0;
     const laporanSelesai = data.ringkasan?.laporan_selesai || 0;
     const pendingLaporan = totalLaporan - laporanSelesai;
-    const totalBerbahaya = data.analisis_dampak_lingkungan?.total_berbahaya || 0;
+    const totalBerbahaya =
+    data.analisis_dampak_lingkungan?.detail
+    ?.find(item => item.jenis === "limbah_berbahaya")
+    ?.jumlah || 0;
+
     
     const stats = [
       {
@@ -556,9 +560,10 @@ function populatePageData(data) {
               <i class="bi ${getDangerIcon(item.tingkat_bahaya)} me-1"></i>
               ${formatTingkatBahaya(item.tingkat_bahaya)}
             </small>
-            <small class="text-muted text-end">
+            <small class="text-muted text-end"
+                title="${item.rekomendasi_sederhana || ''}">
               <i class="bi bi-lightbulb me-1"></i>
-              ${truncateText(item.rekomendasi_sederhana || '', 40)}
+              ${truncateText(item.rekomendasi_sederhana || '-', 60)}
             </small>
           </div>
         </div>

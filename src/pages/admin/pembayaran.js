@@ -3,8 +3,8 @@ import { showModal, showConfirmModal } from "../../utils/modal.js";
 
 import { showToast } from "../../utils/toast.js";
 
-function showFormToast(message, type = 'info') {
-  if (typeof showToast === 'function') {
+function showFormToast(message, type = "info") {
+  if (typeof showToast === "function") {
     showToast(message, type, 5000);
   } else {
     alert(`${type.toUpperCase()}: ${message}`);
@@ -17,7 +17,7 @@ function validatePembayaranInput({
   jumlahBayar,
   metodeBayar,
   statusBayar,
-  buktiFile = null
+  buktiFile = null,
 }) {
   const errors = [];
 
@@ -33,7 +33,7 @@ function validatePembayaranInput({
     errors.push("Jumlah bayar harus berupa angka lebih dari 0");
   }
 
-  if (!["Transfer", "Tunai", "QRIS"].includes(metodeBayar)) {
+  if (!["Transfer", "Tunai"].includes(metodeBayar)) {
     errors.push("Metode bayar tidak valid");
   }
 
@@ -64,12 +64,12 @@ const pembayaranPerPage = 10;
 
 export async function pembayaranAdminPage() {
   const mainContent = document.getElementById("mainContent");
-  if (!document.getElementById('modalContainer')) {
-    const modalContainer = document.createElement('div');
-    modalContainer.id = 'modalContainer';
+  if (!document.getElementById("modalContainer")) {
+    const modalContainer = document.createElement("div");
+    modalContainer.id = "modalContainer";
     document.body.appendChild(modalContainer);
   }
-  
+
   mainContent.innerHTML = `
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -99,7 +99,6 @@ export async function pembayaranAdminPage() {
                         <option value="">Semua Metode</option>
                         <option value="Transfer">Transfer</option>
                         <option value="Tunai">Tunai</option>
-                        <option value="QRIS">QRIS</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -147,20 +146,20 @@ function setupBootstrapValidation(formId) {
   if (!form) return;
 
   // Reset semua pesan validasi
-  const invalidFeedbacks = form.querySelectorAll('.invalid-feedback');
-  invalidFeedbacks.forEach(feedback => {
-    feedback.style.display = 'none';
+  const invalidFeedbacks = form.querySelectorAll(".invalid-feedback");
+  invalidFeedbacks.forEach((feedback) => {
+    feedback.style.display = "none";
   });
 
   // Hapus kelas validasi sebelumnya
-  const inputs = form.querySelectorAll('input, select');
-  inputs.forEach(input => {
-    input.classList.remove('is-valid', 'is-invalid');
+  const inputs = form.querySelectorAll("input, select");
+  inputs.forEach((input) => {
+    input.classList.remove("is-valid", "is-invalid");
   });
 
   // Validasi real-time
-  inputs.forEach(input => {
-    input.addEventListener('blur', function() {
+  inputs.forEach((input) => {
+    input.addEventListener("blur", function () {
       validateSingleField(this);
     });
   });
@@ -168,19 +167,25 @@ function setupBootstrapValidation(formId) {
 
 function validateSingleField(field) {
   // Hapus kelas validasi sebelumnya
-  field.classList.remove('is-valid', 'is-invalid');
-  
+  field.classList.remove("is-valid", "is-invalid");
+
   const feedbackElement = field.nextElementSibling;
-  
+
   if (field.checkValidity()) {
-    field.classList.add('is-valid');
-    if (feedbackElement && feedbackElement.classList.contains('valid-feedback')) {
-      feedbackElement.style.display = 'block';
+    field.classList.add("is-valid");
+    if (
+      feedbackElement &&
+      feedbackElement.classList.contains("valid-feedback")
+    ) {
+      feedbackElement.style.display = "block";
     }
   } else {
-    field.classList.add('is-invalid');
-    if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
-      feedbackElement.style.display = 'block';
+    field.classList.add("is-invalid");
+    if (
+      feedbackElement &&
+      feedbackElement.classList.contains("invalid-feedback")
+    ) {
+      feedbackElement.style.display = "block";
     }
   }
 }
@@ -190,30 +195,33 @@ function validateForm(formId) {
   let isValid = true;
 
   // Validasi semua field required
-  const requiredFields = form.querySelectorAll('[required]');
-  requiredFields.forEach(field => {
+  const requiredFields = form.querySelectorAll("[required]");
+  requiredFields.forEach((field) => {
     validateSingleField(field);
-    
+
     if (!field.checkValidity()) {
       isValid = false;
     }
   });
 
   // Validasi custom
-  if (formId === 'pembayaranForm' || formId === 'editPembayaranForm') {
-    const jumlahBayar = document.getElementById('jumlahBayar');
+  if (formId === "pembayaranForm" || formId === "editPembayaranForm") {
+    const jumlahBayar = document.getElementById("jumlahBayar");
     if (jumlahBayar) {
       const value = parseFloat(jumlahBayar.value);
       if (isNaN(value) || value <= 0) {
-        jumlahBayar.classList.add('is-invalid');
+        jumlahBayar.classList.add("is-invalid");
         let feedback = jumlahBayar.nextElementSibling;
-        if (!feedback || !feedback.classList.contains('invalid-feedback')) {
-          feedback = document.createElement('div');
-          feedback.className = 'invalid-feedback';
-          jumlahBayar.parentNode.insertBefore(feedback, jumlahBayar.nextSibling);
+        if (!feedback || !feedback.classList.contains("invalid-feedback")) {
+          feedback = document.createElement("div");
+          feedback.className = "invalid-feedback";
+          jumlahBayar.parentNode.insertBefore(
+            feedback,
+            jumlahBayar.nextSibling
+          );
         }
-        feedback.textContent = 'Jumlah bayar harus lebih dari 0';
-        feedback.style.display = 'block';
+        feedback.textContent = "Jumlah bayar harus lebih dari 0";
+        feedback.style.display = "block";
         isValid = false;
       }
     }
@@ -243,11 +251,9 @@ async function loadPembayaran() {
     pembayaranAllData = filteredPembayaran;
     pembayaranCurrentPage = 1;
     renderPembayaranTableWithPagination();
-    
   } catch (error) {
-    document.getElementById(
-      "pembayaranTableContainer"
-    ).innerHTML = `<p style="color: red; padding: 20px; text-align: center;">Error loading pembayaran: ${error.message}</p>`;
+    document.getElementById("pembayaranTableContainer").innerHTML =
+      `<p style="color: red; padding: 20px; text-align: center;">Error loading pembayaran: ${error.message}</p>`;
     document.getElementById("paginationContainer").innerHTML = "";
     document.getElementById("paginationInfo").innerHTML = "";
   }
@@ -272,17 +278,22 @@ function renderPembayaranTableWithPagination() {
 
   // Hitung data untuk halaman saat ini
   const startIndex = (pembayaranCurrentPage - 1) * pembayaranPerPage;
-  const endIndex = Math.min(startIndex + pembayaranPerPage, pembayaranAllData.length);
+  const endIndex = Math.min(
+    startIndex + pembayaranPerPage,
+    pembayaranAllData.length
+  );
   const currentPageData = pembayaranAllData.slice(startIndex, endIndex);
-  
+
   // Update info pagination
   paginationInfo.innerHTML = `
-    Menampilkan <strong>${startIndex + 1} - ${endIndex}</strong> dari <strong>${pembayaranAllData.length}</strong> pembayaran
+    Menampilkan <strong>${startIndex + 1} - ${endIndex}</strong> dari <strong>${
+      pembayaranAllData.length
+    }</strong> pembayaran
   `;
 
   // Render tabel dengan data halaman saat ini
   renderPembayaranTable(currentPageData);
-  
+
   // Render pagination controls
   renderPaginationControls();
 }
@@ -366,7 +377,7 @@ function renderPaginationControls() {
   if (!container) return;
 
   const totalPages = Math.ceil(pembayaranAllData.length / pembayaranPerPage);
-  
+
   if (totalPages <= 1) {
     container.innerHTML = "";
     return;
@@ -377,8 +388,14 @@ function renderPaginationControls() {
       <!-- Previous Button -->
       <button ${pembayaranCurrentPage === 1 ? "disabled" : ""}
         onclick="goToPembayaranPage(${pembayaranCurrentPage - 1})"
-        style="padding: 8px 16px; border: 1px solid #ddd; background: ${pembayaranCurrentPage === 1 ? "#f5f5f5" : "white"}; 
-               color: ${pembayaranCurrentPage === 1 ? "#999" : "#333"}; border-radius: 4px; cursor: ${pembayaranCurrentPage === 1 ? "not-allowed" : "pointer"};">
+        style="padding: 8px 16px; border: 1px solid #ddd; background: ${
+          pembayaranCurrentPage === 1 ? "#f5f5f5" : "white"
+        }; 
+               color: ${
+                 pembayaranCurrentPage === 1 ? "#999" : "#333"
+               }; border-radius: 4px; cursor: ${
+                 pembayaranCurrentPage === 1 ? "not-allowed" : "pointer"
+               };">
         ← Prev
       </button>
   `;
@@ -386,17 +403,17 @@ function renderPaginationControls() {
   // Tampilkan maksimal 5 nomor halaman
   let startPage = Math.max(1, pembayaranCurrentPage - 2);
   let endPage = Math.min(totalPages, pembayaranCurrentPage + 2);
-  
+
   // Adjust if near start
   if (pembayaranCurrentPage <= 3) {
     endPage = Math.min(5, totalPages);
   }
-  
+
   // Adjust if near end
   if (pembayaranCurrentPage >= totalPages - 2) {
     startPage = Math.max(1, totalPages - 4);
   }
-  
+
   // First page
   if (startPage > 1) {
     html += `
@@ -409,20 +426,24 @@ function renderPaginationControls() {
       html += `<span style="padding: 8px 4px;">...</span>`;
     }
   }
-  
+
   // Page numbers
   for (let i = startPage; i <= endPage; i++) {
     html += `
       <button onclick="goToPembayaranPage(${i})"
         style="padding: 8px 16px; border: 1px solid #ddd; 
-               background: ${i === pembayaranCurrentPage ? "#007bff" : "white"}; 
+               background: ${
+                 i === pembayaranCurrentPage ? "#007bff" : "white"
+               }; 
                color: ${i === pembayaranCurrentPage ? "white" : "#333"}; 
-               border-radius: 4px; cursor: pointer; font-weight: ${i === pembayaranCurrentPage ? "bold" : "normal"};">
+               border-radius: 4px; cursor: pointer; font-weight: ${
+                 i === pembayaranCurrentPage ? "bold" : "normal"
+               };">
         ${i}
       </button>
     `;
   }
-  
+
   // Last page
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) {
@@ -440,8 +461,16 @@ function renderPaginationControls() {
       <!-- Next Button -->
       <button ${pembayaranCurrentPage === totalPages ? "disabled" : ""}
         onclick="goToPembayaranPage(${pembayaranCurrentPage + 1})"
-        style="padding: 8px 16px; border: 1px solid #ddd; background: ${pembayaranCurrentPage === totalPages ? "#f5f5f5" : "white"}; 
-               color: ${pembayaranCurrentPage === totalPages ? "#999" : "#333"}; border-radius: 4px; cursor: ${pembayaranCurrentPage === totalPages ? "not-allowed" : "pointer"};">
+        style="padding: 8px 16px; border: 1px solid #ddd; background: ${
+          pembayaranCurrentPage === totalPages ? "#f5f5f5" : "white"
+        }; 
+               color: ${
+                 pembayaranCurrentPage === totalPages ? "#999" : "#333"
+               }; border-radius: 4px; cursor: ${
+                 pembayaranCurrentPage === totalPages
+                   ? "not-allowed"
+                   : "pointer"
+               };">
         Next →
       </button>
     </div>
@@ -451,36 +480,39 @@ function renderPaginationControls() {
 }
 
 function goToPembayaranPage(page) {
-  if (page < 1 || page > Math.ceil(pembayaranAllData.length / pembayaranPerPage)) {
+  if (
+    page < 1 ||
+    page > Math.ceil(pembayaranAllData.length / pembayaranPerPage)
+  ) {
     return;
   }
-  
+
   pembayaranCurrentPage = page;
   renderPembayaranTableWithPagination();
-  
+
   // Scroll ke atas tabel
   document.getElementById("pembayaranTableContainer").scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
+    behavior: "smooth",
+    block: "start",
   });
 }
 
 function getStatusColor(status) {
   if (!status) return "#6c757d";
-  
+
   const statusLower = String(status).toLowerCase();
   const colors = {
-    'lunas': "#28a745",
-    'paid': "#28a745",
-    'selesai': "#28a745",
-    'pending': "#ffc107",
-    'waiting': "#ffc107",
-    'gagal': "#dc3545",
-    'failed': "#dc3545",
-    'expired': "#6c757d",
-    'canceled': "#6c757d"
+    lunas: "#28a745",
+    paid: "#28a745",
+    selesai: "#28a745",
+    pending: "#ffc107",
+    waiting: "#ffc107",
+    gagal: "#dc3545",
+    failed: "#dc3545",
+    expired: "#6c757d",
+    canceled: "#6c757d",
   };
-  
+
   return colors[statusLower] || "#6c757d";
 }
 
@@ -522,7 +554,6 @@ async function showAddPembayaranForm() {
                     <select id="metodeBayar" class="form-select" required>
                         <option value="Transfer">Transfer</option>
                         <option value="Tunai">Tunai</option>
-                        <option value="QRIS">QRIS</option>
                     </select>
                     <div class="invalid-feedback">Silakan pilih metode bayar.</div>
                 </div>
@@ -546,84 +577,94 @@ async function showAddPembayaranForm() {
             </form>
         `;
 
-    showModal("Tambah Pembayaran", formHTML, async () => {
-      // Setup validasi Bootstrap
-      setupBootstrapValidation('pembayaranForm');
-      
-      // Validasi form
-      if (!validateForm('pembayaranForm')) {
-        return false;
-      }
+    showModal(
+      "Tambah Pembayaran",
+      formHTML,
+      async () => {
+        // Setup validasi Bootstrap
+        setupBootstrapValidation("pembayaranForm");
 
-      const idAnggota = document.getElementById("idAnggota").value;
-      const tanggalBayar = document.getElementById("tanggalBayar").value;
-      const jumlahBayar = document.getElementById("jumlahBayar").value;
-      const metodeBayar = document.getElementById("metodeBayar").value;
-      const statusBayar = document.getElementById("statusBayar").value;
-      const fileInput = document.getElementById("buktiBayar");
-      const buktiFile = fileInput.files[0] || null;
-
-      // ✅ Validasi file jika ada
-      if (buktiFile) {
-        const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
-        const maxSize = 5 * 1024 * 1024; // 5MB
-
-        if (!allowedTypes.includes(buktiFile.type)) {
-          fileInput.classList.add('is-invalid');
-          document.getElementById('fileError').textContent = 'Bukti bayar harus berupa gambar (JPG, PNG, GIF)';
-          document.getElementById('fileError').style.display = 'block';
+        // Validasi form
+        if (!validateForm("pembayaranForm")) {
           return false;
         }
 
-        if (buktiFile.size > maxSize) {
-          fileInput.classList.add('is-invalid');
-          document.getElementById('fileError').textContent = 'Ukuran bukti bayar maksimal 5MB';
-          document.getElementById('fileError').style.display = 'block';
+        const idAnggota = document.getElementById("idAnggota").value;
+        const tanggalBayar = document.getElementById("tanggalBayar").value;
+        const jumlahBayar = document.getElementById("jumlahBayar").value;
+        const metodeBayar = document.getElementById("metodeBayar").value;
+        const statusBayar = document.getElementById("statusBayar").value;
+        const fileInput = document.getElementById("buktiBayar");
+        const buktiFile = fileInput.files[0] || null;
+
+        // ✅ Validasi file jika ada
+        if (buktiFile) {
+          const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/gif",
+          ];
+          const maxSize = 5 * 1024 * 1024; // 5MB
+
+          if (!allowedTypes.includes(buktiFile.type)) {
+            fileInput.classList.add("is-invalid");
+            document.getElementById("fileError").textContent =
+              "Bukti bayar harus berupa gambar (JPG, PNG, GIF)";
+            document.getElementById("fileError").style.display = "block";
+            return false;
+          }
+
+          if (buktiFile.size > maxSize) {
+            fileInput.classList.add("is-invalid");
+            document.getElementById("fileError").textContent =
+              "Ukuran bukti bayar maksimal 5MB";
+            document.getElementById("fileError").style.display = "block";
+            return false;
+          }
+        }
+
+        const formData = new FormData();
+        formData.append("idAnggota", idAnggota);
+        formData.append("tanggalBayar", tanggalBayar);
+        formData.append("jumlahBayar", jumlahBayar);
+        formData.append("metodeBayar", metodeBayar);
+        formData.append("statusBayar", statusBayar);
+
+        if (buktiFile) {
+          formData.append("buktiBayar", buktiFile);
+        }
+
+        try {
+          const headers = {};
+          const token = localStorage.getItem("access");
+          if (token) headers.Authorization = `Bearer ${token}`;
+
+          const response = await fetch(API.pembayaran, {
+            method: "POST",
+            headers,
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const err = await response.text();
+            throw new Error(err || "Gagal menambah pembayaran");
+          }
+
+          showFormToast("Pembayaran berhasil ditambahkan", "success");
+          pembayaranCurrentPage = 1;
+          loadPembayaran();
+          return true;
+        } catch (error) {
+          showFormToast(error.message, "danger");
           return false;
         }
+      },
+      () => {
+        // Setup validasi setelah modal ditampilkan
+        setTimeout(() => setupBootstrapValidation("pembayaranForm"), 100);
       }
-
-      const formData = new FormData();
-      formData.append("idAnggota", idAnggota);
-      formData.append("tanggalBayar", tanggalBayar);
-      formData.append("jumlahBayar", jumlahBayar);
-      formData.append("metodeBayar", metodeBayar);
-      formData.append("statusBayar", statusBayar);
-
-      if (buktiFile) {
-        formData.append("buktiBayar", buktiFile);
-      }
-
-      try {
-        const headers = {};
-        const token = localStorage.getItem("access");
-        if (token) headers.Authorization = `Bearer ${token}`;
-
-        const response = await fetch(API.pembayaran, {
-          method: "POST",
-          headers,
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const err = await response.text();
-          throw new Error(err || "Gagal menambah pembayaran");
-        }
-
-        showFormToast("Pembayaran berhasil ditambahkan", "success");
-        pembayaranCurrentPage = 1;
-        loadPembayaran();
-        return true;
-
-      } catch (error) {
-        showFormToast(error.message, "danger");
-        return false;
-      }
-    }, () => {
-      // Setup validasi setelah modal ditampilkan
-      setTimeout(() => setupBootstrapValidation('pembayaranForm'), 100);
-    });
-
+    );
   } catch (error) {
     showFormToast("Error loading anggota: " + error.message, "danger");
   }
@@ -635,147 +676,188 @@ async function editPembayaran(pembayaranId) {
       headers: getAuthHeaders(),
     });
 
+    const anggotaId =
+      pembayaran.anggota || pembayaran.anggota_id || pembayaran.idAnggota;
+
     const formHTML = `
-            <form id="editPembayaranForm" class="needs-validation" novalidate>
-                <div class="mb-3">
-                    <label for="tanggalBayar" class="form-label">Tanggal Bayar *</label>
-                    <input type="date" id="tanggalBayar" class="form-control" value="${pembayaran.tanggalBayar}" required>
-                    <div class="invalid-feedback">Silakan isi tanggal bayar.</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="jumlahBayar" class="form-label">Jumlah Bayar (Rp) *</label>
-                    <input type="number" id="jumlahBayar" class="form-control" value="${pembayaran.jumlahBayar}" required>
-                    <div class="invalid-feedback">Jumlah bayar harus lebih dari 0.</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="metodeBayar" class="form-label">Metode Bayar *</label>
-                    <select id="metodeBayar" class="form-select" required>
-                        <option value="Transfer" ${pembayaran.metodeBayar === "Transfer" ? "selected" : ""}>Transfer</option>
-                        <option value="Tunai" ${pembayaran.metodeBayar === "Tunai" ? "selected" : ""}>Tunai</option>
-                        <option value="QRIS" ${pembayaran.metodeBayar === "QRIS" ? "selected" : ""}>QRIS</option>
-                    </select>
-                    <div class="invalid-feedback">Silakan pilih metode bayar.</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="statusBayar" class="form-label">Status Bayar *</label>
-                    <select id="statusBayar" class="form-select" required>
-                        <option value="pending" ${pembayaran.statusBayar === "pending" ? "selected" : ""}>Pending</option>
-                        <option value="lunas" ${pembayaran.statusBayar === "lunas" ? "selected" : ""}>Lunas</option>
-                        <option value="gagal" ${pembayaran.statusBayar === "gagal" ? "selected" : ""}>Gagal</option>
-                    </select>
-                    <div class="invalid-feedback">Silakan pilih status bayar.</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Bukti Bayar Saat Ini:</label>
-                    ${pembayaran.bukti_bayar_url
-                      ? `<div class="mb-2">
-                           <img src="${pembayaran.bukti_bayar_url}" 
-                                alt="Bukti Saat Ini"
-                                class="img-thumbnail" style="max-width: 200px; max-height: 200px; object-fit: contain;">
-                         </div>
-                         <a href="${pembayaran.bukti_bayar_url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                           <i class="bi bi-box-arrow-up-right"></i> Buka di tab baru
-                         </a>`
-                      : "<p class='text-muted'>Tidak ada bukti bayar</p>"
-                    }
-                </div>
-                
-                <div class="mb-3">
-                    <label for="buktiBayar" class="form-label">Ubah Bukti Bayar (Opsional):</label>
-                    <input type="file" id="buktiBayar" class="form-control" accept="image/*">
-                    <div class="form-text">Biarkan kosong jika tidak ingin mengubah</div>
-                    <div class="invalid-feedback" id="editFileError"></div>
-                </div>
-            </form>
-        `;
+      <form id="editPembayaranForm" class="needs-validation" novalidate>
 
-    showModal("Edit Pembayaran", formHTML, async () => {
-      // Setup validasi Bootstrap
-      setupBootstrapValidation('editPembayaranForm');
-      
-      // Validasi form
-      if (!validateForm('editPembayaranForm')) {
-        return false;
-      }
+        <div class="mb-3">
+          <label class="form-label">Tanggal Bayar *</label>
+          <input type="date" id="tanggalBayar" class="form-control"
+                 value="${pembayaran.tanggalBayar || ""}" required>
+          <div class="invalid-feedback">Silakan isi tanggal bayar</div>
+        </div>
 
-      const tanggalBayar = document.getElementById("tanggalBayar").value;
-      const jumlahBayar = document.getElementById("jumlahBayar").value;
-      const metodeBayar = document.getElementById("metodeBayar").value;
-      const statusBayar = document.getElementById("statusBayar").value;
-      const fileInput = document.getElementById("buktiBayar");
-      const buktiFile = fileInput.files[0] || null;
+        <div class="mb-3">
+          <label class="form-label">Jumlah Bayar *</label>
+          <input type="number" id="jumlahBayar" class="form-control"
+                 value="${pembayaran.jumlahBayar || 0}" required min="1">
+        </div>
 
-      // ✅ Validasi file jika ada
-      if (buktiFile) {
-        const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        <div class="mb-3">
+          <label class="form-label">Metode Bayar *</label>
+          <select id="metodeBayar" class="form-select" required>
+            <option value="Transfer" ${pembayaran.metodeBayar === "Transfer" ? "selected" : ""}>Transfer</option>
+            <option value="Tunai" ${pembayaran.metodeBayar === "Tunai" ? "selected" : ""}>Tunai</option>
+          </select>
+        </div>
 
-        if (!allowedTypes.includes(buktiFile.type)) {
-          fileInput.classList.add('is-invalid');
-          document.getElementById('editFileError').textContent = 'Bukti bayar harus berupa gambar (JPG, PNG, GIF)';
-          document.getElementById('editFileError').style.display = 'block';
-          return false;
-        }
+        <div class="mb-3">
+          <label class="form-label">Status Bayar *</label>
+          <select id="statusBayar" class="form-select" required>
+            <option value="pending" ${pembayaran.statusBayar === "pending" ? "selected" : ""}>Pending</option>
+            <option value="lunas" ${pembayaran.statusBayar === "lunas" ? "selected" : ""}>Lunas</option>
+            <option value="gagal" ${pembayaran.statusBayar === "gagal" ? "selected" : ""}>Gagal</option>
+          </select>
+        </div>
 
-        if (buktiFile.size > maxSize) {
-          fileInput.classList.add('is-invalid');
-          document.getElementById('editFileError').textContent = 'Ukuran bukti bayar maksimal 5MB';
-          document.getElementById('editFileError').style.display = 'block';
-          return false;
-        }
-      }
+        <div class="form-check mb-3" id="perpanjangContainer" style="display:none;">
+          <input class="form-check-input" type="checkbox" id="perpanjangAnggota" checked>
+          <label class="form-check-label">
+            Perpanjang keanggotaan 1 bulan
+          </label>
+        </div>
 
-      const formData = new FormData();
-      formData.append("tanggalBayar", tanggalBayar);
-      formData.append("jumlahBayar", jumlahBayar);
-      formData.append("metodeBayar", metodeBayar);
-      formData.append("statusBayar", statusBayar);
+        <div class="mb-3">
+          <label class="form-label">Ubah Bukti Bayar</label>
+          <input type="file" id="buktiBayar" class="form-control" accept="image/*">
+        </div>
+      </form>
+    `;
 
-      if (buktiFile) {
-        formData.append("buktiBayar", buktiFile);
-      }
+    showModal(
+      "Edit Pembayaran",
+      formHTML,
+      async () => {
+        if (!validateForm("editPembayaranForm")) return false;
 
-      try {
-        const headers = {};
-        const token = localStorage.getItem("access");
-        if (token) headers.Authorization = `Bearer ${token}`;
+        const statusBayar = document.getElementById("statusBayar").value;
+        const statusLama = pembayaran.statusBayar;
 
-        const response = await fetch(`${API.pembayaran}${pembayaranId}/`, {
+        const formData = new FormData();
+        formData.append("tanggalBayar", document.getElementById("tanggalBayar").value);
+        formData.append("jumlahBayar", document.getElementById("jumlahBayar").value);
+        formData.append("metodeBayar", document.getElementById("metodeBayar").value);
+        formData.append("statusBayar", statusBayar);
+
+        const buktiFile = document.getElementById("buktiBayar").files[0];
+        if (buktiFile) formData.append("buktiBayar", buktiFile);
+
+        await fetch(`${API.pembayaran}${pembayaranId}/`, {
           method: "PATCH",
-          headers,
+          headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
           body: formData,
         });
 
-        if (!response.ok) {
-          throw new Error(await response.text());
+        /* =========================
+          PERPANJANG KEANGGOTAAN
+        ========================= */
+        if (
+          statusBayar === "lunas" &&
+          statusLama !== "lunas" &&
+          anggotaId &&
+          document.getElementById("perpanjangAnggota")?.checked
+        ) {
+          try {
+            const res = await fetch(`${API.anggota}${anggotaId}/`, {
+              headers: getAuthHeaders(),
+            });
+
+            if (!res.ok) return;
+
+            const anggota = await res.json();
+
+            // =====================
+            // HITUNG TANGGAL END BARU
+            // =====================
+            const now = new Date();
+            let baseDate = now;
+
+            if (anggota.tanggalEnd) {
+              const oldEnd = new Date(anggota.tanggalEnd);
+              if (oldEnd > now) baseDate = oldEnd;
+            }
+
+            baseDate.setMonth(baseDate.getMonth() + 1);
+            const tanggalEnd = baseDate.toISOString().split("T")[0];
+
+            // =====================
+            // PAYLOAD UPDATE
+            // =====================
+            const payload = {
+              tanggalEnd,
+            };
+
+            // 👉 hanya aktifkan jika sebelumnya non-aktif
+            if (anggota.status === "non-aktif") {
+              payload.status = "aktif";
+            }
+
+            await fetch(`${API.anggota}${anggotaId}/`, {
+              method: "PATCH",
+              headers: {
+                ...getAuthHeaders(),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            console.log(
+              `✅ Anggota diperpanjang sampai ${tanggalEnd}, status: ${
+                payload.status || anggota.status
+              }`
+            );
+
+          } catch (err) {
+            console.warn("⚠️ Gagal update anggota:", err);
+          }
         }
 
-        showFormToast("Pembayaran berhasil diperbarui", "success");
         loadPembayaran();
+        showFormToast("Pembayaran berhasil diperbarui", "success");
         return true;
-
-      } catch (error) {
-        showFormToast(error.message, "danger");
-        return false;
       }
-    }, () => {
-      // Setup validasi setelah modal ditampilkan
-      setTimeout(() => setupBootstrapValidation('editPembayaranForm'), 100);
+    );
+
+    /* =========================
+       🔥 OBSERVER (KUNCI MASALAH)
+    ========================= */
+    const observer = new MutationObserver(() => {
+      const statusSelect = document.getElementById("statusBayar");
+      const container = document.getElementById("perpanjangContainer");
+
+      if (!statusSelect || !container) return;
+
+      const toggle = () => {
+        if (statusSelect.value === "lunas" && anggotaId) {
+          container.style.display = "block";
+        } else {
+          container.style.display = "none";
+          const cb = document.getElementById("perpanjangAnggota");
+          if (cb) cb.checked = false;
+        }
+      };
+
+      statusSelect.addEventListener("change", toggle);
+      toggle(); // init awal
+
+      observer.disconnect();
     });
 
-  } catch (error) {
-    showFormToast("Error loading pembayaran data: " + error.message, "danger");
+    observer.observe(document.body, { childList: true, subtree: true });
+
+  } catch (err) {
+    showFormToast("Gagal memuat data pembayaran", "danger");
+    console.error(err);
   }
 }
+
 
 async function viewDetailPembayaran(pembayaranId) {
   try {
     console.log("Fetching detail pembayaran dengan ID:", pembayaranId);
-    
+
     const pembayaran = await fetchAPI(`${API.pembayaran}${pembayaranId}/`, {
       headers: getAuthHeaders(),
     });
@@ -788,12 +870,15 @@ async function viewDetailPembayaran(pembayaranId) {
     }
 
     // Buat URL bukti bayar yang aman
-    let buktiBayarUrl = '';
+    let buktiBayarUrl = "";
     if (pembayaran.bukti_bayar_url) {
       buktiBayarUrl = pembayaran.bukti_bayar_url;
     } else if (pembayaran.buktiBayar) {
       buktiBayarUrl = pembayaran.buktiBayar;
-    } else if (typeof pembayaran.bukti_bayar === 'string' && pembayaran.bukti_bayar.startsWith('http')) {
+    } else if (
+      typeof pembayaran.bukti_bayar === "string" &&
+      pembayaran.bukti_bayar.startsWith("http")
+    ) {
       buktiBayarUrl = pembayaran.bukti_bayar;
     }
 
@@ -814,13 +899,13 @@ async function viewDetailPembayaran(pembayaranId) {
 
     // Format tanggal
     const formatDate = (dateString) => {
-      if (!dateString) return '-';
+      if (!dateString) return "-";
       try {
         const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric'
+        return date.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
         });
       } catch {
         return dateString;
@@ -833,31 +918,39 @@ async function viewDetailPembayaran(pembayaranId) {
           <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
             <i class="bi bi-receipt"></i> Detail Pembayaran
           </h3>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;">ID: #${pembayaran.idPembayaran || pembayaranId}</p>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;">ID: #${
+            pembayaran.idPembayaran || pembayaranId
+          }</p>
         </div>
         
         <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
             <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745;">
               <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Anggota</div>
-              <div style="font-weight: 600; color: #333;">${pembayaran.nama_anggota || "N/A"}</div>
+              <div style="font-weight: 600; color: #333;">${
+                pembayaran.nama_anggota || "N/A"
+              }</div>
             </div>
             
             <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #17a2b8;">
               <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Tanggal Bayar</div>
-              <div style="font-weight: 600; color: #333;">${formatDate(pembayaran.tanggalBayar)}</div>
+              <div style="font-weight: 600; color: #333;">${formatDate(
+                pembayaran.tanggalBayar
+              )}</div>
             </div>
             
             <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
               <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Jumlah Bayar</div>
               <div style="font-weight: 600; color: #28a745;">
-                Rp ${(pembayaran.jumlahBayar || 0).toLocaleString('id-ID')}
+                Rp ${(pembayaran.jumlahBayar || 0).toLocaleString("id-ID")}
               </div>
             </div>
             
             <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #6f42c1;">
               <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Metode Bayar</div>
-              <div style="font-weight: 600; color: #333;">${pembayaran.metodeBayar || "N/A"}</div>
+              <div style="font-weight: 600; color: #333;">${
+                pembayaran.metodeBayar || "N/A"
+              }</div>
             </div>
           </div>
           
@@ -886,7 +979,9 @@ async function viewDetailPembayaran(pembayaranId) {
             ${buktiHTML}
           </div>
           
-          ${pembayaran.keterangan ? `
+          ${
+            pembayaran.keterangan
+              ? `
             <div style="margin-top: 20px;">
               <h4 style="margin-bottom: 10px; color: #333; display: flex; align-items: center; gap: 8px;">
                 <i class="bi bi-chat-left-text"></i> Keterangan
@@ -895,16 +990,17 @@ async function viewDetailPembayaran(pembayaranId) {
                 ${pembayaran.keterangan}
               </div>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
     `;
 
     showModal("Detail Pembayaran", detailHTML);
-    
   } catch (error) {
     console.error("Error loading detail:", error);
-    
+
     const errorHTML = `
       <div style="text-align: center; padding: 40px 20px;">
         <div style="font-size: 48px; color: #dc3545; margin-bottom: 20px;">
@@ -919,7 +1015,7 @@ async function viewDetailPembayaran(pembayaranId) {
         </button>
       </div>
     `;
-    
+
     showModal("Error", errorHTML);
   }
 }

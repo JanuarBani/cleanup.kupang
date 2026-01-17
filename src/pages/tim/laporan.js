@@ -921,6 +921,7 @@ function copyCoordinates(lat, lng) {
   });
 }
 
+
 // [FUNGSI-FUNGSI HELPER LAINNYA TETAP SAMA...]
 
 function renderLaporanCards(laporanList) {
@@ -1338,7 +1339,7 @@ function showNotification(message, type = "info") {
   setTimeout(() => {
     notification.style.animation = "slideOut 0.3s ease";
     setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  }, 5000);
 }
 
 // Tambahkan CSS untuk animasi jika belum ada
@@ -1426,7 +1427,7 @@ async function updateLaporanStatus(laporanId) {
           });
 
           showNotification("✅ Status laporan berhasil diupdate!", "success");
-          alert("✅ Status laporan berhasil diupdate!, 'success'")
+          alert('✅ Status laporan berhasil diupdate!', 'success')
           loadLaporan();
           return true; // ⬅️ Izinkan modal ditutup
           

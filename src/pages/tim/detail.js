@@ -1373,7 +1373,7 @@ async function batalkanPengangkutan(id) {
       const alasan = document.getElementById("catatanBatal").value;
       if (!alasan) {
         showNotification("⚠️ Alasan wajib diisi", "warning");
-        return;
+        return false;
       }
 
       await fetchAPI(`${API.detailAnggotaJadwal}${id}/`, {
@@ -2246,7 +2246,7 @@ function showNotification(message, type = "info") {
         notification.parentNode.removeChild(notification);
       }
     }, 300);
-  }, 3000);
+  }, 5000);
 }
 
 // Tambahkan CSS untuk animasi notifikasi

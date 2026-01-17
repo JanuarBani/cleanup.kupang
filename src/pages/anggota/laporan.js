@@ -348,12 +348,13 @@ async function loadLaporanWithContainer(containerId = "laporanContainer", filter
             );
         }
         
-        // Sorting
-        if (filters.sort === "newest") {
-            filteredData.sort((a, b) => new Date(b.tanggal_lapor || b.created_at) - new Date(a.tanggal_lapor || a.created_at));
-        } else if (filters.sort === "oldest") {
-            filteredData.sort((a, b) => new Date(a.tanggal_lapor || a.created_at) - new Date(b.tanggal_lapor || b.created_at));
-        }
+        // === SORTING DEFAULT: TERBARU → TERLAMA ===
+        filteredData.sort((a, b) => {
+            const dateA = new Date(a.tanggal_lapor || a.created_at || a.createdAt);
+            const dateB = new Date(b.tanggal_lapor || b.created_at || b.createdAt);
+            return dateB - dateA; // newest first
+        });
+
 
         if (filteredData.length === 0) {
             container.innerHTML = `

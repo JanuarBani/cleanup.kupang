@@ -159,27 +159,46 @@ export async function reportsAdminPage() {
     addReportsCSS();
 }
 
+let exportListenersAttached = false;
+
 function setupExportButtonListeners() {
-    document.addEventListener('click', (event) => {
-        // Handle export buttons di header (exportPdfBtn, exportExcelBtn, exportJsonBtn)
-        if (event.target.id === 'exportPdfBtn' || event.target.closest('#exportPdfBtn')) {
-            event.preventDefault();
+    // CEK apakah listener sudah terpasang
+    if (exportListenersAttached) return;
+    
+    // Handler tunggal untuk semua export
+    const handleExportClick = async (event) => {
+        const target = event.target;
+        
+        // Prevents default behavior
+        // event.preventDefault();
+        // event.stopImmediatePropagation();
+        
+        // Header buttons (PDF, Excel, JSON di atas)
+        if (target.id === 'exportPdfBtn' || target.closest('#exportPdfBtn')) {
+            console.log('📤 Header PDF button clicked');
             event.stopPropagation();
-            handleExport('pdf');
-        } else if (event.target.id === 'exportExcelBtn' || event.target.closest('#exportExcelBtn')) {
-            event.preventDefault();
-            event.stopPropagation();
-            handleExport('excel');
-        } else if (event.target.id === 'exportJsonBtn' || event.target.closest('#exportJsonBtn')) {
-            event.preventDefault();
-            event.stopPropagation();
-            handleExport('json');
+            await handleExport('pdf');
+            return;
         }
         
-        // Handle export buttons di content (yang dibuat dinamis dengan class export-btn)
-        const exportBtn = event.target.closest('.export-btn');
+        if (target.id === 'exportExcelBtn' || target.closest('#exportExcelBtn')) {
+            console.log('📤 Header Excel button clicked');
+            event.stopPropagation();
+            await handleExport('excel');
+            return;
+        }
+        
+        if (target.id === 'exportJsonBtn' || target.closest('#exportJsonBtn')) {
+            console.log('📤 Header JSON button clicked');
+            event.stopPropagation();
+            await handleExport('json');
+            return;
+        }
+        
+        // Content buttons (yang ada class .export-btn)
+        const exportBtn = target.closest('.export-btn');
         if (exportBtn) {
-            event.preventDefault();
+            console.log('📤 Content export button clicked');
             event.stopPropagation();
             const format = exportBtn.getAttribute('data-format') || 'pdf';
             
@@ -188,7 +207,7 @@ function setupExportButtonListeners() {
             if (activeCard) {
                 const reportType = activeCard.getAttribute('data-report-type');
                 
-                // Ambil filter berdasarkan tipe laporan
+                // Ambil filter
                 let filters = {};
                 
                 if (reportType === 'monthly') {
@@ -200,11 +219,7 @@ function setupExportButtonListeners() {
                             year: parseInt(yearSelect.value)
                         };
                     }
-                } else if (reportType === 'user-stats') {
-                    // User stats biasanya tidak butuh filter
-                    filters = {};
-                } else {
-                    // Untuk laporan lain, ambil tanggal dari filter
+                } else if (reportType !== 'user-stats') {
                     const startDate = document.getElementById('startDate')?.value;
                     const endDate = document.getElementById('endDate')?.value;
                     
@@ -216,15 +231,22 @@ function setupExportButtonListeners() {
                     }
                 }
                 
-                console.log(`Export ${reportType} as ${format} with filters:`, filters);
-                handleExportWithFilters(reportType, format, filters);
+                await handleExportWithFilters(reportType, format, filters);
             }
         }
-    });
+    };
+    
+    // Pasang event listener dengan opsi once
+    document.addEventListener('click', handleExportClick, { once: false });
+    exportListenersAttached = true;
+    console.log('✅ Export listeners setup completed');
 }
 
-// Setup event listeners untuk semua interaksi
+let reportEventListenersAttached = false;
+
 function setupReportEventListeners() {
+    if (reportEventListenersAttached) return;
+    
     // Event delegation untuk report cards
     const container = document.getElementById('reportCardsContainer');
     if (container) {
@@ -247,7 +269,7 @@ function setupReportEventListeners() {
     }
     
     // Event delegation untuk semua form dalam report
-    document.addEventListener('submit', (event) => {
+    const formHandler = (event) => {
         const form = event.target;
         
         // Handle filter form
@@ -265,10 +287,14 @@ function setupReportEventListeners() {
             event.preventDefault();
             generateMonthlyReport();
         }
-    });
+    };
+    
+    document.addEventListener('submit', formHandler);
     
     // Setup export button listeners
     setupExportButtonListeners();
+    
+    reportEventListenersAttached = true;
 }
 
 // Fungsi untuk menambah CSS
@@ -664,18 +690,8 @@ function createMonthYearFilter() {
 }
 
 function createExportButtons(reportType, filters = {}) {
-    // Bersihkan filter untuk display
-    const displayFilters = {};
-    if (filters.start_date && filters.end_date) {
-        displayFilters.start_date = filters.start_date;
-        displayFilters.end_date = filters.end_date;
-    } else if (filters.month && filters.year) {
-        displayFilters.month = filters.month;
-        displayFilters.year = filters.year;
-    }
-    
-    // Stringify filter dengan escape yang benar
-    const filterString = JSON.stringify(displayFilters).replace(/"/g, '&quot;');
+    // Hapus semua referensi onclick
+    const filterString = JSON.stringify(filters).replace(/"/g, '&quot;');
     
     return `
         <div class="mt-4 pt-3 border-top">
@@ -684,16 +700,13 @@ function createExportButtons(reportType, filters = {}) {
                 <i class="fas fa-info-circle"></i> Pilih format yang diinginkan
             </p>
             <div class="btn-group">
-                <button type="button" class="btn btn-outline-danger export-btn" data-format="pdf"
-                        onclick="window.handleExportButtonClick('${reportType}', 'pdf', '${filterString}')">
+                <button type="button" class="btn btn-outline-danger export-btn" data-format="pdf" data-report-type="${reportType}">
                     <i class="fas fa-file-pdf"></i> PDF
                 </button>
-                <button type="button" class="btn btn-outline-success export-btn" data-format="excel"
-                        onclick="window.handleExportButtonClick('${reportType}', 'excel', '${filterString}')">
+                <button type="button" class="btn btn-outline-success export-btn" data-format="excel" data-report-type="${reportType}">
                     <i class="fas fa-file-excel"></i> Excel
                 </button>
-                <button type="button" class="btn btn-outline-primary export-btn" data-format="json"
-                        onclick="window.handleExportButtonClick('${reportType}', 'json', '${filterString}')">
+                <button type="button" class="btn btn-outline-primary export-btn" data-format="json" data-report-type="${reportType}">
                     <i class="fas fa-file-code"></i> JSON
                 </button>
             </div>
@@ -728,9 +741,35 @@ async function handleExportWithFilters(reportType, format, filters = {}) {
     try {
         console.log(`📊 Export ${reportType} as ${format}`, filters);
         await exportReport(reportType, format, filters);
+        
+        // Delay untuk memastikan button state direset
+        setTimeout(() => {
+            const exportButtons = document.querySelectorAll('.export-btn, #exportPdfBtn, #exportExcelBtn, #exportJsonBtn');
+            exportButtons.forEach(btn => {
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
+                    const wasDisabled = btn.dataset.originalDisabled === 'true';
+                    btn.disabled = wasDisabled;
+                    delete btn.dataset.originalHTML;
+                    delete btn.dataset.originalDisabled;
+                }
+            });
+        }, 500);
+        
     } catch (error) {
         console.error('Error in handleExportWithFilters:', error);
         showToast(`Gagal export: ${error.message}`, 'error');
+        
+        // Pastikan reset loading state walau error
+        const exportButtons = document.querySelectorAll('.export-btn, #exportPdfBtn, #exportExcelBtn, #exportJsonBtn');
+        exportButtons.forEach(btn => {
+            if (btn.dataset.originalHTML) {
+                btn.innerHTML = btn.dataset.originalHTML;
+                btn.disabled = false;
+                delete btn.dataset.originalHTML;
+                delete btn.dataset.originalDisabled;
+            }
+        });
     }
 }
 
@@ -1299,6 +1338,38 @@ async function exportReport(reportType, format = 'pdf', filters = {}) {
                 delete btn.dataset.originalDisabled;
             }
         });
+
+        setTimeout(() => {
+            const allExportButtons = document.querySelectorAll('.export-btn, #exportPdfBtn, #exportExcelBtn, #exportJsonBtn');
+            allExportButtons.forEach(btn => {
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
+                    const wasDisabled = btn.dataset.originalDisabled === 'true';
+                    btn.disabled = wasDisabled;
+                    delete btn.dataset.originalHTML;
+                    delete btn.dataset.originalDisabled;
+                } else {
+                    // Reset ke state normal jika ada loading state manual
+                    const loadingSpans = btn.querySelectorAll('.spinner-border');
+                    loadingSpans.forEach(span => span.remove());
+                    btn.disabled = false;
+                    
+                    // Reset text berdasarkan format
+                    if (btn.classList.contains('export-btn')) {
+                        const format = btn.getAttribute('data-format');
+                        if (format === 'pdf') btn.innerHTML = '<i class="fas fa-file-pdf"></i> PDF';
+                        else if (format === 'excel') btn.innerHTML = '<i class="fas fa-file-excel"></i> Excel';
+                        else if (format === 'json') btn.innerHTML = '<i class="fas fa-file-code"></i> JSON';
+                    } else if (btn.id === 'exportPdfBtn') {
+                        btn.innerHTML = '<i class="fas fa-file-pdf"></i> PDF';
+                    } else if (btn.id === 'exportExcelBtn') {
+                        btn.innerHTML = '<i class="fas fa-file-excel"></i> Excel';
+                    } else if (btn.id === 'exportJsonBtn') {
+                        btn.innerHTML = '<i class="fas fa-file-code"></i> JSON';
+                    }
+                }
+            });
+        }, 1000); // Timeout 1 detik untuk memastikan
     }
 }
 

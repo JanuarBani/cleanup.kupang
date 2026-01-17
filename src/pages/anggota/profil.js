@@ -1659,7 +1659,7 @@ async function handleEditProfile(user, userData, anggotaData) {
     if (!alamat) {
         showValidationMessage('editAlamat', 'Alamat harus diisi');
         isValid = false;
-    } else if (alamat.length < 10) {
+    } else if (alamat.length < 4) {
         showValidationMessage('editAlamat', 'Alamat terlalu pendek');
         isValid = false;
     } else {

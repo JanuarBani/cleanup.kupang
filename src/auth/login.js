@@ -485,14 +485,14 @@ async function login(username, password) {
             
             // Tampilkan toast jika tersedia
             if (typeof showToast === 'function') {
-                showToast('success', `Selamat datang ${userData.username}!`);
+                showToast(`Login berhasil! Selamat datang ${userData.username}!`, 'success');
             }
             
             // 6. Redirect ke dashboard sesuai role
             setTimeout(() => {
                 console.log(`🎯 Redirecting ${userData.role}...`);
                 window.location.hash = `#/dashboard-${userData.role}`;
-            }, 1500);
+            }, 4000);
             
         } catch (tokenError) {
             console.error('Token validation error:', tokenError);

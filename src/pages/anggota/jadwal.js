@@ -277,6 +277,13 @@ function renderDetailTableAnggota(detailList) {
         return;
     }
 
+    // === SORTING: TANGGAL TERBARU → TERLAMA ===
+    const sortedDetailList = [...detailList].sort((a, b) => {
+        const dateA = new Date(a.tanggal_jadwal || a.created_at);
+        const dateB = new Date(b.tanggal_jadwal || b.created_at);
+        return dateB - dateA; // newest first
+    });
+
     const tableHTML = `
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
@@ -292,7 +299,7 @@ function renderDetailTableAnggota(detailList) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${detailList.map(detail => {
+                    ${sortedDetailList.map(detail => {
                         const detailId = detail.id || 'N/A';
                         const tanggalJadwal = detail.tanggal_jadwal || `Jadwal ID: ${detail.idJadwal}`;
                         const namaTim = detail.nama_tim || 'N/A';
@@ -409,35 +416,57 @@ function getStatusBadgeAnggota(status) {
 }
 
 async function loadAnggotaId() {
-    const user = await authGuard();
-    if (!user || !user.id) {
-        console.warn("User tidak ditemukan saat loadAnggotaId.");
-        return null;
+  const user = await authGuard();
+  if (!user || !user.id) {
+    console.warn("User tidak ditemukan saat loadAnggotaId.");
+    return null;
+  }
+
+  try {
+    const response = await fetchAPI(`${API.anggota}?user=${user.id}`, {
+      headers: getAuthHeaders(),
+    });
+
+    // Jika data anggota ditemukan dari API
+    if (Array.isArray(response) && response.length > 0) {
+      const idAnggota = Number(response[0].id);
+
+      if (!isNaN(idAnggota)) {
+        localStorage.setItem("idAnggota", idAnggota);
+        console.log("idAnggota loaded:", idAnggota);
+        return idAnggota;
+      }
     }
 
-    try {
-        const response = await fetchAPI(`${API.anggota}?user=${user.id}`, {
-            headers: getAuthHeaders()
-        });
+    // Fallback ke localStorage jika API kosong
+    const fallbackId =
+      Number(localStorage.getItem("idAnggota")) ||
+      Number(localStorage.getItem("anggota.idAnggota"));
 
-        if (response.length > 0) {
-            localStorage.setItem("idAnggota", response[0].id);
-            console.log("idAnggota loaded:", response[0].id);
-            return response[0].id;
-        }
-
-        console.warn("Tidak ditemukan data Anggota untuk user ini.");
-        return null;
-
-    } catch (err) {
-        console.error("Gagal load idAnggota:", err);
-        return null;
+    if (!isNaN(fallbackId)) {
+      console.warn("Menggunakan idAnggota dari localStorage.");
+      return fallbackId;
     }
+
+    console.warn("Tidak ditemukan data Anggota untuk user ini.");
+    return null;
+
+  } catch (err) {
+    console.error("Gagal load idAnggota:", err);
+    return null;
+  }
 }
+
 
 function showAddDetailFormAnggota() {
     // Ambil idAnggota dari localStorage (pastikan sudah di-load sebelumnya)
-    const idAnggota = localStorage.getItem("idAnggota");
+    let idAnggota = Number(localStorage.getItem("idAnggota"));
+
+    if (isNaN(idAnggota)) {
+    const anggota = JSON.parse(localStorage.getItem("anggota"));
+    idAnggota = Number(anggota?.idAnggota);
+    }
+
     
     if (!idAnggota) {
         // Jika tidak ada, coba load dulu
